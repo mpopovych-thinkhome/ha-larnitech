@@ -21,7 +21,7 @@ Mapping reference: `larnitech_integration_spec.md` → "Карта маппин�
 ## Distribution
 
 - [ ] HACS support (decide repo layout / `hacs.json`)
-- [ ] Brand logo — PR to `home-assistant/brands` (`custom_integrations/larnitech`)
+- [ ] Larnitech icon + logo — PR to `home-assistant/brands` (`custom_integrations/larnitech`: `icon.png` 256×256, `icon@2x.png` 512×512, `logo.png`) so HA/HACS shows the Larnitech logo instead of the placeholder
 
 ## Ideas / nice-to-have
 
