@@ -9,20 +9,17 @@ the API2 WebSocket.
 - Read + control: `temperature-sensor` → sensor, `lamp` → light (on/off).
 - Dynamic device add/remove, name & room sync, and a resync-names button.
 
-Design notes and the full Larnitech → Home Assistant type mapping live in
-[`larnitech_integration_spec.md`](larnitech_integration_spec.md).
+## Install via HACS
 
-## Branches
+1. HACS → ⋮ → **Custom repositories** → add this repository, category
+   **Integration**.
+2. Search **Larnitech** in HACS, download it.
+3. Restart Home Assistant.
+4. **Settings → Devices & Services → Add Integration → Larnitech.**
 
-- `main` — stable, released versions.
-- `stage` — work in progress; merged into `main` on release.
+Updates appear in HACS when a new version is published.
 
 ## Versioning
 
 See [`CHANGELOG.md`](CHANGELOG.md). The project follows
 [Semantic Versioning](https://semver.org/).
-
-## Install
-
-Copy this folder to `/config/custom_components/larnitech/`, restart Home
-Assistant, then add the integration via **Settings → Devices & Services**.
