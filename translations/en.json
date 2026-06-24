@@ -1,0 +1,51 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Larnitech controller",
+        "data": {
+          "connection_type": "Connection type (cloud / local)",
+          "serial": "Serial number (cloud)",
+          "host": "Host / IP (local)",
+          "port": "Port (local)",
+          "key": "API key (from LT_Setup)",
+          "auto_remove": "Auto-remove devices that disappear or change type",
+          "update_names": "Auto-update names from Larnitech",
+          "use_areas": "Use Larnitech rooms (create areas and place devices)",
+          "update_areas": "Auto-update device room placement"
+        }
+      },
+      "reconfigure": {
+        "title": "Larnitech connection",
+        "data": {
+          "connection_type": "Connection type (cloud / local)",
+          "serial": "Serial number (cloud)",
+          "host": "Host / IP (local)",
+          "port": "Port (local)",
+          "key": "API key (from LT_Setup)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the controller.",
+      "invalid_auth": "API key was rejected."
+    },
+    "abort": {
+      "already_configured": "This controller is already configured.",
+      "reconfigure_successful": "Connection updated."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Larnitech options",
+        "data": {
+          "auto_remove": "Auto-remove devices that disappear or change type",
+          "update_names": "Auto-update names from Larnitech",
+          "use_areas": "Use Larnitech rooms (create areas and place devices)",
+          "update_areas": "Auto-update device room placement"
+        }
+      }
+    }
+  }
+}
