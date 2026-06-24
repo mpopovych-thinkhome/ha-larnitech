@@ -217,20 +217,20 @@ HA 2026.6 ставит новую реализацию `websockets` (`ClientConn
 
 ### Актуаторы
 
-| type | sub-type | HA-домен | Комментарий |
-|---|---|---|---|
-| `lamp` | — | `light` | ✅ светильник on/off |
-| `lamp` | `socket` | `switch` | розетка (`device_class=outlet`) |
-| `lamp` | `lock` | `lock` | замок/защёлка |
-| `lamp` | `air-fan` | `fan` | вытяжка/вентилятор on/off |
-| `lamp` | `pump` | `switch` | насос |
-| `lamp` | `valve-3` | `valve` | 3-ходовой клапан (fallback `switch`) |
-| `lamp` | `damper` | `valve` | заслонка (fallback `switch`) |
-| `lamp` | `dehumidifier` | `humidifier` | осушитель (`device_class=dehumidifier`) |
-| `lamp` | `closing-switch` | `switch` | импульсный доводчик |
-| `dimmer-lamp` | — | `light` | яркость (`brightness`) |
-| `rgb-lamp` | — | `light` | RGB (`rgb`/`rgbw`) |
-| `light-scheme` | — | `scene` | световая сцена (или `button`) |
+| type           | sub-type         | HA-домен     | Комментарий                             |
+| -------------- | ---------------- | ------------ | --------------------------------------- |
+| `lamp`         | —                | `light`      | ✅ светильник on/off                     |
+| `lamp`         | `socket`         | `switch`     | розетка (`device_class=outlet`)         |
+| `lamp`         | `lock`           | `lock`       | замок/защёлка                           |
+| `lamp`         | `air-fan`        | `fan`        | вытяжка/вентилятор on/off               |
+| `lamp`         | `pump`           | `switch`     | насос                                   |
+| `lamp`         | `valve-3`        | `valve`      | 3-ходовой клапан (fallback `switch`)    |
+| `lamp`         | `damper`         | `valve`      | заслонка (fallback `switch`)            |
+| `lamp`         | `dehumidifier`   | `humidifier` | осушитель (`device_class=dehumidifier`) |
+| `lamp`         | `closing-switch` | `switch`     | импульсный доводчик                     |
+| `dimmer-lamp`  | —                | `light`      | яркость (`brightness`)                  |
+| `rgb-lamp`     | —                | `light`      | RGB (`rgb`/`rgbw`)                      |
+| `light-scheme` | —                | `scene`      | световая сцена (или `button`)           |
 
 ### Климат
 
