@@ -55,7 +55,7 @@ Larnitech. Каждый entry = отдельное WS-соединение, св
 ## Поток данных
 
 ```
-Larnitech SVIT ──ws──► LarnitechClient (1 на entry)
+Larnitech ──ws──► LarnitechClient (1 на entry)
    status-subscribe (push, основной канал)
    get-devices каждые 60 с (страховочный snapshot)
                     │

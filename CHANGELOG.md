@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-26
+### Added
+- Climate: `valve-heating` (+ `warm-floor`) → heat/off with `target` setpoint;
+  `climate-control` → off/heat/cool/auto with `setpoint-heat`/`setpoint-cool`
+  range; `AC` (+ `conditioner`/`fancoil`) → off/heat/cool/dry/fan/auto with
+  `target` and fan mode. Larnitech `automations` exposed as HA presets. Write
+  commands are provisional pending live verification.
+
 ## [0.4.0] - 2026-06-26
 ### Added
 - Covers: `blinds` → cover (shade), `jalousie` → cover (blind), `gate` → cover

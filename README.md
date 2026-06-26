@@ -1,6 +1,6 @@
 # Larnitech — Home Assistant integration
 
-Custom integration connecting Home Assistant to Larnitech SVIT controllers over
+Custom integration connecting Home Assistant to Larnitech controllers over
 the API2 WebSocket.
 
 - Local or cloud connection, multiple controllers per Home Assistant.

@@ -47,6 +47,7 @@ PLATFORMS = [
     "valve",
     "humidifier",
     "cover",
+    "climate",
     "button",
 ]
 
@@ -86,6 +87,11 @@ HANDLED_TYPES = {
     "blinds",
     "jalousie",
     "gate",
+    "valve-heating",
+    "climate-control",
+    "AC",
+    "conditioner",
+    "fancoil",
 }
 
 

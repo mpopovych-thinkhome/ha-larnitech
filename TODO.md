@@ -7,8 +7,6 @@ add it to `CHANGELOG.md` (under `### Added` / `### Fixed`).
 
 Mapping reference: `larnitech_integration_spec.md` → "Карта маппинга типов".
 
-- [ ] `AC` / `conditioner` / `climate-control` / `fancoil` → climate
-- [ ] `valve-heating` (+ `warm-floor`) → climate
 - [ ] `light-scheme` → scene (or button)
 - [ ] `virtual` sub-types: `sensor`/`text`/`long-text`/`prf`→sensor, `lamp`/`dimer-lamp`/`rgb-lamp`→light, `jalousie`/`gate`(+`120`)→cover
 
