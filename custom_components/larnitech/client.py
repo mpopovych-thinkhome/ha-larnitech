@@ -133,18 +133,28 @@ class LarnitechClient:
     # --- message handling ------------------------------------------------
 
     def _handle(self, raw: str) -> None:
-        raw = raw.replace(_QUIRK_FROM, _QUIRK_TO)
+        if _QUIRK_FROM in raw:
+            _LOGGER.debug("Larnitech: repairing doubled-brace status quirk")
+            raw = raw.replace(_QUIRK_FROM, _QUIRK_TO)
         try:
             msg = json.loads(raw)
-        except json.JSONDecodeError:
-            _LOGGER.debug("Larnitech: undecodable frame")
+        except json.JSONDecodeError as err:
+            # Keep the raw frame (truncated) so a new quirk can be diagnosed.
+            _LOGGER.warning("Larnitech: undecodable frame (%s): %.500s", err, raw)
             return
-        if msg.get("response") == "get-devices":
+        response = msg.get("response")
+        if response == "get-devices":
             fut = self._devices_future
             if fut is not None and not fut.done():
                 fut.set_result(msg.get("devices", []))
+        elif response == "status-set":
+            for dev in msg.get("devices", []):
+                if not dev.get("success", True):
+                    _LOGGER.warning("Larnitech: status-set failed for %s: %s", dev.get("addr"), dev)
         elif msg.get("event") == "statuses" and self._on_event is not None:
             self._on_event(msg.get("devices", []))
+        else:
+            _LOGGER.debug("Larnitech: unhandled frame: %.300s", raw)
 
     # --- requests --------------------------------------------------------
 

@@ -19,7 +19,8 @@ BINARY_SENSORS = {
     "leak-sensor": BinarySensorDeviceClass.MOISTURE,
 }
 
-_ON_VALUES = {"on", "open", "1", "true", "alarm", "detected"}
+_ON_VALUES = {"on", "open", "opened", "1", "true", "alarm", "detected", "leak"}
+_OFF_VALUES = {"off", "closed", "close", "0", "false", "clear", "normal", "no", "idle", "ok"}
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -61,4 +62,16 @@ class LarnitechBinarySensor(LarnitechEntity, BinarySensorEntity):
             return value
         if isinstance(value, (int, float)):
             return value != 0
-        return str(value).strip().lower() in _ON_VALUES
+        text = str(value).strip().lower()
+        if text in _ON_VALUES:
+            return True
+        if text in _OFF_VALUES:
+            return False
+        self._warn_once(
+            f"state:{value!r}",
+            "Larnitech binary_sensor %s: unrecognized state %r (status=%s) — treating as off",
+            self.entity_id,
+            value,
+            self.status,
+        )
+        return False

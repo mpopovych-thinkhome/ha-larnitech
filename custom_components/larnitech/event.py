@@ -7,6 +7,8 @@ HA event. The byte->gesture decode is provisional until confirmed against a
 live press on the stand (watch the logbook while pressing)."""
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.event import (
     ENTITY_ID_FORMAT,
     EventDeviceClass,
@@ -16,6 +18,8 @@ from homeassistant.core import callback
 
 from .const import DOMAIN
 from .entity import LarnitechEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 TYPE = "switch"
 
@@ -72,6 +76,13 @@ class LarnitechButton(LarnitechEntity, EventEntity):
         raw = self.status.get("state")
         if raw != self._last:
             self._last = raw
+            # Log the real value so the provisional decode can be corrected.
+            _LOGGER.debug(
+                "Larnitech button %s: raw state -> %r (status=%s)",
+                self.entity_id,
+                raw,
+                self.status,
+            )
             event_type = _decode_event(raw)
             if event_type:
                 self._trigger_event(event_type)

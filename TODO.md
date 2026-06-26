@@ -7,12 +7,10 @@ add it to `CHANGELOG.md` (under `### Added` / `### Fixed`).
 
 Mapping reference: `larnitech_integration_spec.md` → "Карта маппинга типов".
 
-- [ ] `dimmer-lamp` → light with brightness (`level` 0.0–1.0)
-- [ ] `rgb-lamp` → light with rgb/rgbw
 - [ ] `AC` / `conditioner` / `climate-control` / `fancoil` → climate
 - [ ] `valve-heating` (+ `warm-floor`) → climate
 - [ ] `blinds` / `jalousie` / `gate` → cover (position, tilt, device_class)
-- [ ] `lamp` sub-types: `lock`→lock, `socket`→switch, `air-fan`→fan, `pump`→switch, `valve-3`/`damper`→valve, `dehumidifier`→humidifier
+- [ ] `light-scheme` → scene (or button)
 - [ ] `virtual` sub-types: `sensor`/`text`/`long-text`/`prf`→sensor, `lamp`/`dimer-lamp`/`rgb-lamp`→light, `jalousie`/`gate`(+`120`)→cover
 
 ## Distribution

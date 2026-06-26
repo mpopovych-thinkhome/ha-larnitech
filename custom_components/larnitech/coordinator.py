@@ -26,6 +26,7 @@ from .const import (
     MISSING_SNAPSHOTS_BEFORE_REMOVE,
     device_slug,
     toggle,
+    unhandled_reason,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,6 +51,8 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         self.client = client
         self.entry = entry
         self._missing: dict[str, int] = {}
+        # (type, sub-type) pairs already reported as unmapped — log each once.
+        self._logged_unmapped: set = set()
 
         # Resolved toggles (options override data, default ON).
         self.auto_remove = toggle(entry, CONF_AUTO_REMOVE)
@@ -63,8 +66,28 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         except LarnitechError as err:
             raise UpdateFailed(str(err)) from err
         data = {d["addr"]: d for d in devices if "addr" in d}
+        self._log_unmapped(data)
         self._reconcile(data)
         return data
+
+    @callback
+    def _log_unmapped(self, data: dict[str, dict]) -> None:
+        """Surface devices that map to no platform, with the raw payload, so an
+        unknown type or sub-type can be added to the mapping later."""
+        for addr, dev in data.items():
+            reason = unhandled_reason(dev)
+            if reason is None:
+                continue
+            key = (dev.get("type"), dev.get("sub-type"))
+            if key in self._logged_unmapped:
+                continue
+            self._logged_unmapped.add(key)
+            _LOGGER.warning(
+                "Larnitech device not mapped to a platform (%s) at %s — raw: %s",
+                reason,
+                addr,
+                dev,
+            )
 
     @callback
     def apply_events(self, devices: list[dict]) -> None:
@@ -83,7 +106,16 @@ class LarnitechCoordinator(DataUpdateCoordinator):
             status = dev.get("status")
             if addr is None:
                 continue
-            if not isinstance(status, dict) or addr not in updated:
+            if not isinstance(status, dict):
+                _LOGGER.debug(
+                    "apply_events: non-dict status for %s: %r — full refresh", addr, status
+                )
+                need_full = True
+                continue
+            if addr not in updated:
+                _LOGGER.debug(
+                    "apply_events: event for unknown addr %s: %r — full refresh", addr, dev
+                )
                 need_full = True
                 continue
             merged = dict(updated[addr])

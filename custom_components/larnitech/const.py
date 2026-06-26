@@ -36,7 +36,63 @@ DEFAULT_LOCAL_PORT = 2041
 # against missed events and doubles as keepalive / dead-connection detection.
 DEFAULT_SCAN_INTERVAL = 120
 
-PLATFORMS = ["sensor", "binary_sensor", "event", "light", "button"]
+PLATFORMS = [
+    "sensor",
+    "binary_sensor",
+    "event",
+    "light",
+    "switch",
+    "lock",
+    "fan",
+    "valve",
+    "humidifier",
+    "button",
+]
+
+# `lamp` sub-type -> HA platform. Absent sub-type = plain light.
+LAMP_PLATFORM = {
+    None: "light",
+    "socket": "switch",
+    "pump": "switch",
+    "closing-switch": "switch",
+    "lock": "lock",
+    "air-fan": "fan",
+    "valve-3": "valve",
+    "damper": "valve",
+    "dehumidifier": "humidifier",
+}
+
+
+def lamp_platform(device: dict) -> str | None:
+    """HA platform for a `lamp` device by sub-type; None = unknown, skip."""
+    return LAMP_PLATFORM.get(device.get("sub-type") or None)
+
+
+# Device types this integration maps to a platform (lamp dispatched by sub-type).
+HANDLED_TYPES = {
+    "temperature-sensor",
+    "humidity-sensor",
+    "co2-sensor",
+    "illumination-sensor",
+    "current-sensor",
+    "motion-sensor",
+    "door-sensor",
+    "leak-sensor",
+    "switch",
+    "lamp",
+    "dimmer-lamp",
+    "rgb-lamp",
+}
+
+
+def unhandled_reason(device: dict) -> str | None:
+    """Why a device maps to no platform (for diagnostics), or None if handled."""
+    dtype = device.get("type")
+    if dtype not in HANDLED_TYPES:
+        return f"unknown type {dtype!r}"
+    if dtype == "lamp" and lamp_platform(device) is None:
+        return f"lamp with unknown sub-type {device.get('sub-type')!r}"
+    return None
 
 
 def device_slug(serial, addr: str) -> str:

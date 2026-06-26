@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-26
+### Added
+- Lighting widgets: `dimmer-lamp` → light with brightness (`level` 0.0–1.0),
+  `rgb-lamp` → light with rgb. Brightness/color status & write keys are
+  provisional pending confirmation against a live device.
+- `lamp` sub-types mapped to their own platforms: `socket`/`pump`/
+  `closing-switch` → switch (`socket` = outlet), `lock` → lock, `air-fan` →
+  fan, `valve-3`/`damper` → valve, `dehumidifier` → humidifier. Unknown
+  sub-types are logged and skipped.
+- Diagnostics logging to learn what the controller really sends: unmapped
+  device types/sub-types logged once with the raw payload; non-numeric sensor
+  and unrecognized binary_sensor / button values warned once; raw status dumped
+  per entity at debug; undecodable frames and failed `status-set` logged.
+
+### Fixed
+- binary_sensor on/off vocabulary from live data: `opened`/`leak` = on,
+  `ok` = off (door sensors report `opened`, leak sensors `ok`).
+
 ## [0.2.0] - 2026-06-26
 ### Added
 - Measurement sensors: `humidity-sensor`, `co2-sensor`, `illumination-sensor`,

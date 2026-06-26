@@ -62,4 +62,14 @@ class LarnitechSensor(LarnitechEntity, SensorEntity):
     @property
     def native_value(self):
         value = self.status.get("state")
-        return value if isinstance(value, (int, float)) else None
+        if isinstance(value, (int, float)):
+            return value
+        if value is not None:
+            self._warn_once(
+                f"state:{value!r}",
+                "Larnitech sensor %s: non-numeric state %r (status=%s)",
+                self.entity_id,
+                value,
+                self.status,
+            )
+        return None
