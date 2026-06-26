@@ -46,6 +46,7 @@ PLATFORMS = [
     "fan",
     "valve",
     "humidifier",
+    "cover",
     "button",
 ]
 
@@ -82,6 +83,9 @@ HANDLED_TYPES = {
     "lamp",
     "dimmer-lamp",
     "rgb-lamp",
+    "blinds",
+    "jalousie",
+    "gate",
 }
 
 

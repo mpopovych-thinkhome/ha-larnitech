@@ -9,7 +9,6 @@ Mapping reference: `larnitech_integration_spec.md` → "Карта маппин�
 
 - [ ] `AC` / `conditioner` / `climate-control` / `fancoil` → climate
 - [ ] `valve-heating` (+ `warm-floor`) → climate
-- [ ] `blinds` / `jalousie` / `gate` → cover (position, tilt, device_class)
 - [ ] `light-scheme` → scene (or button)
 - [ ] `virtual` sub-types: `sensor`/`text`/`long-text`/`prf`→sensor, `lamp`/`dimer-lamp`/`rgb-lamp`→light, `jalousie`/`gate`(+`120`)→cover
 

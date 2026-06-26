@@ -76,8 +76,9 @@ class LarnitechEntity(CoordinatorEntity):
     def is_state_on(self) -> bool:
         return self.status.get("state") == "on"
 
-    async def async_set_state(self, on: bool) -> None:
-        await self.coordinator.client.async_set_status(
-            self._addr, {"state": "on" if on else "off"}
-        )
+    async def async_write_status(self, status: dict) -> None:
+        await self.coordinator.client.async_set_status(self._addr, status)
         await self.coordinator.async_request_refresh()
+
+    async def async_set_state(self, on: bool) -> None:
+        await self.async_write_status({"state": "on" if on else "off"})

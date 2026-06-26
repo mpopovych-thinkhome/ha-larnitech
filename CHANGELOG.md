@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-26
+### Added
+- Covers: `blinds` → cover (shade), `jalousie` → cover (blind), `gate` → cover
+  (gate). Position is inverted (Larnitech 0.0 = open). The `target` write key
+  and `stop` command are provisional; jalousie tilt is not implemented yet.
+
 ## [0.3.0] - 2026-06-26
 ### Added
 - Lighting widgets: `dimmer-lamp` → light with brightness (`level` 0.0–1.0),
