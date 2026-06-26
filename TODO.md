@@ -12,9 +12,6 @@ Mapping reference: `larnitech_integration_spec.md` → "Карта маппин�
 - [ ] `AC` / `conditioner` / `climate-control` / `fancoil` → climate
 - [ ] `valve-heating` (+ `warm-floor`) → climate
 - [ ] `blinds` / `jalousie` / `gate` → cover (position, tilt, device_class)
-- [ ] sensors: `humidity-sensor`, `co2-sensor`, `illumination-sensor`, `current-sensor` → sensor
-- [ ] binary: `motion-sensor`, `door-sensor`, `leak-sensor` → binary_sensor
-- [ ] `switch` (physical button) → event (press / hold)
 - [ ] `lamp` sub-types: `lock`→lock, `socket`→switch, `air-fan`→fan, `pump`→switch, `valve-3`/`damper`→valve, `dehumidifier`→humidifier
 - [ ] `virtual` sub-types: `sensor`/`text`/`long-text`/`prf`→sensor, `lamp`/`dimer-lamp`/`rgb-lamp`→light, `jalousie`/`gate`(+`120`)→cover
 

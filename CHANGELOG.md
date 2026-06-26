@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-26
+### Added
+- Measurement sensors: `humidity-sensor`, `co2-sensor`, `illumination-sensor`,
+  `current-sensor` → sensor (alongside `temperature-sensor`).
+- Discrete sensors: `motion-sensor`, `door-sensor`, `leak-sensor` →
+  binary_sensor.
+- Physical buttons: `switch` → event (press / hold). Gesture decode is
+  provisional pending confirmation against a live press.
+
 ## [0.1.0] - 2026-06-24
 ### Added
 - Config flow with local/cloud connection; multiple controllers per HA.

@@ -1,4 +1,4 @@
-# Updated: 2026-06-24 15:55
+# Updated: 2026-06-26 14:30
 """Constants for the Larnitech integration."""
 
 DOMAIN = "larnitech"
@@ -36,7 +36,7 @@ DEFAULT_LOCAL_PORT = 2041
 # against missed events and doubles as keepalive / dead-connection detection.
 DEFAULT_SCAN_INTERVAL = 120
 
-PLATFORMS = ["sensor", "light", "button"]
+PLATFORMS = ["sensor", "binary_sensor", "event", "light", "button"]
 
 
 def device_slug(serial, addr: str) -> str:
