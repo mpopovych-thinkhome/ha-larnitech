@@ -12,7 +12,7 @@ from .client import LarnitechAuthError, LarnitechClient, LarnitechError
 from .const import (
     CONF_AUTO_REMOVE,
     CONF_CONNECTION_TYPE,
-    CONF_HOST,
+    CONF_IP,
     CONF_KEY,
     CONF_PORT,
     CONF_SERIAL,
@@ -23,26 +23,25 @@ from .const import (
     CONN_LOCAL,
     DEFAULT_LOCAL_PORT,
     DOMAIN,
+    OPTIONS_KEYS,
     TOGGLE_DEFAULTS,
 )
 
-_TOGGLE_KEYS = (CONF_AUTO_REMOVE, CONF_UPDATE_NAMES, CONF_USE_AREAS, CONF_UPDATE_AREAS)
 
-
-def _connection_schema(d: dict) -> dict:
+def _data_schema(d: dict) -> dict:
     return {
         vol.Required(CONF_CONNECTION_TYPE, default=d.get(CONF_CONNECTION_TYPE, CONN_CLOUD)):
             vol.In([CONN_CLOUD, CONN_LOCAL]),
-        vol.Optional(CONF_SERIAL, default=d.get(CONF_SERIAL, "")): str,
-        vol.Optional(CONF_HOST, default=d.get(CONF_HOST, "")): str,
-        vol.Optional(CONF_PORT, default=d.get(CONF_PORT, DEFAULT_LOCAL_PORT)): int,
+        vol.Required(CONF_SERIAL, default=d.get(CONF_SERIAL, "")): str,
         vol.Required(CONF_KEY, default=d.get(CONF_KEY, "")): str,
+        vol.Optional(CONF_IP, default=d.get(CONF_IP, "")): str,
+        vol.Optional(CONF_PORT, default=d.get(CONF_PORT, DEFAULT_LOCAL_PORT)): int,
     }
 
 
-def _toggles_schema(d: dict) -> dict:
+def _options_schema(d: dict) -> dict:
     return {
-        vol.Required(k, default=d.get(k, TOGGLE_DEFAULTS[k])): bool for k in _TOGGLE_KEYS
+        vol.Required(k, default=d.get(k, TOGGLE_DEFAULTS[k])): bool for k in OPTIONS_KEYS
     }
 
 
@@ -55,7 +54,7 @@ async def _test_connection(hass, data: dict) -> str | None:
         connection_type=data[CONF_CONNECTION_TYPE],
         key=data[CONF_KEY],
         serial=data.get(CONF_SERIAL) or None,
-        host=data.get(CONF_HOST) or None,
+        host=data.get(CONF_IP) or None,
         port=data.get(CONF_PORT, DEFAULT_LOCAL_PORT),
         ssl_context=ssl_context,
     )
@@ -71,12 +70,13 @@ async def _test_connection(hass, data: dict) -> str | None:
 
 
 def _uid(data: dict) -> str:
-    return data.get(CONF_SERIAL) or f"{data.get(CONF_HOST)}:{data.get(CONF_PORT)}"
+    return data.get(CONF_SERIAL, "larni")
 
 
 class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
+    # Initial (adding) setup
     async def async_step_user(self, user_input=None):
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -86,14 +86,14 @@ class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 await self.async_set_unique_id(_uid(user_input))
                 self._abort_if_unique_id_configured()
-                options = {k: user_input.pop(k) for k in _TOGGLE_KEYS}
-                return self.async_create_entry(
-                    title=f"Larnitech {_uid(user_input)}", data=user_input, options=options
-                )
+                options = {k: user_input.pop(k) for k in OPTIONS_KEYS}
+                return self.async_create_entry(title=f"Larnitech {_uid(user_input)}", data=user_input, options=options)
 
-        schema = vol.Schema({**_connection_schema({}), **_toggles_schema({})})
+        d = user_input or {}
+        schema = vol.Schema({**_data_schema(d), **_options_schema(d)})
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
+    # Change connection config
     async def async_step_reconfigure(self, user_input=None):
         entry = self._get_reconfigure_entry()
         errors: dict[str, str] = {}
@@ -104,10 +104,8 @@ class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 return self.async_update_reload_and_abort(entry, data_updates=user_input)
 
-        schema = vol.Schema(_connection_schema(entry.data))
-        return self.async_show_form(
-            step_id="reconfigure", data_schema=schema, errors=errors
-        )
+        schema = vol.Schema(_data_schema(entry.data))
+        return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
 
     @staticmethod
     @callback
@@ -121,5 +119,5 @@ class LarnitechOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
         current = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(_toggles_schema(current))
+            step_id="init", data_schema=vol.Schema(_options_schema(current))
         )

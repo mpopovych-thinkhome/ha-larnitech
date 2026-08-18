@@ -4,30 +4,31 @@
       "user": {
         "title": "Larnitech controller",
         "data": {
-          "connection_type": "Connection type (cloud / local)",
-          "serial": "Serial number (cloud)",
+          "connection_type": "Connection type",
+          "serial": "Serial number",
+          "key": "API key (from LT_Setup)",
           "host": "Host / IP (local)",
           "port": "Port (local)",
-          "key": "API key (from LT_Setup)",
           "auto_remove": "Auto-remove devices that disappear or change type",
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
-          "update_areas": "Auto-update device room placement"
+          "update_areas": "Auto-update device room placement",
+          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead"
         }
       },
       "reconfigure": {
         "title": "Larnitech connection",
         "data": {
-          "connection_type": "Connection type (cloud / local)",
-          "serial": "Serial number (cloud)",
+          "connection_type": "Connection type",
+          "serial": "Serial number",
+          "key": "API key (from LT_Setup)",
           "host": "Host / IP (local)",
-          "port": "Port (local)",
-          "key": "API key (from LT_Setup)"
+          "port": "Port (local)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Failed to connect to the controller.",
+      "cannot_connect": "Failed to connect to the server.",
       "invalid_auth": "API key was rejected."
     },
     "abort": {
@@ -43,7 +44,40 @@
           "auto_remove": "Auto-remove devices that disappear or change type",
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
-          "update_areas": "Auto-update device room placement"
+          "update_areas": "Auto-update device room placement",
+          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead"
+        }
+      }
+    }
+  },
+  "entity": {
+    "valve": {
+      "larnitech_valve": {
+        "state": {
+          "open": "Opened",
+          "closed": "Closed"
+        }
+      }
+    },
+    "climate": {
+      "ac": {
+        "state_attributes": {
+          "swing_mode": {
+            "name": "Vertical swing"
+          },
+          "swing_horizontal_mode": {
+            "name": "Horizontal swing"
+          }
+        }
+      },
+      "conditioner": {
+        "state_attributes": {
+          "swing_mode": {
+            "name": "Vertical swing"
+          },
+          "swing_horizontal_mode": {
+            "name": "Horizontal swing"
+          }
         }
       }
     }

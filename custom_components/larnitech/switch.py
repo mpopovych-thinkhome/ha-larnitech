@@ -1,5 +1,10 @@
-# Updated: 2026-06-26 14:30
-"""Larnitech lamp sub-types mapped to switch (socket / pump / closing-switch)."""
+# Updated: 2026-08-14 12:00
+"""Larnitech lamp sub-types mapped to switch (socket / pump / closing-switch),
+plus `light-scheme` (all `ls-type` variants — the API exposes the same
+`status.state` on/off shape regardless of variant; behavioral differences
+between Scheme/Scene/Scene+/Scheme Rev/master-slave live on the controller,
+not the protocol). `ls-type=2` ("activate-only") ignores `turn_off` on the
+controller side; HA still shows the control, it's just a no-op there."""
 from __future__ import annotations
 
 from homeassistant.components.switch import (
@@ -14,6 +19,8 @@ from .entity import LarnitechEntity
 
 
 def _claims(device: dict) -> bool:
+    if device.get("type") == "light-scheme":
+        return True
     return device.get("type") == "lamp" and lamp_platform(device) == "switch"
 
 

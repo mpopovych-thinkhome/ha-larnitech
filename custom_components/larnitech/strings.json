@@ -12,7 +12,8 @@
           "auto_remove": "Auto-remove devices that disappear or change type",
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
-          "update_areas": "Auto-update device room placement"
+          "update_areas": "Auto-update device room placement",
+          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead"
         }
       },
       "reconfigure": {
@@ -43,7 +44,40 @@
           "auto_remove": "Auto-remove devices that disappear or change type",
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
-          "update_areas": "Auto-update device room placement"
+          "update_areas": "Auto-update device room placement",
+          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead"
+        }
+      }
+    }
+  },
+  "entity": {
+    "valve": {
+      "larnitech_valve": {
+        "state": {
+          "open": "Opened",
+          "closed": "Closed"
+        }
+      }
+    },
+    "climate": {
+      "ac": {
+        "state_attributes": {
+          "swing_mode": {
+            "name": "Vertical swing"
+          },
+          "swing_horizontal_mode": {
+            "name": "Horizontal swing"
+          }
+        }
+      },
+      "conditioner": {
+        "state_attributes": {
+          "swing_mode": {
+            "name": "Vertical swing"
+          },
+          "swing_horizontal_mode": {
+            "name": "Horizontal swing"
+          }
         }
       }
     }

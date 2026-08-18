@@ -10,7 +10,7 @@ from homeassistant.util.ssl import client_context
 from .client import LarnitechClient, LarnitechError
 from .const import (
     CONF_CONNECTION_TYPE,
-    CONF_HOST,
+    CONF_IP,
     CONF_KEY,
     CONF_PORT,
     CONF_SERIAL,
@@ -32,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         connection_type=entry.data[CONF_CONNECTION_TYPE],
         key=entry.data[CONF_KEY],
         serial=entry.data.get(CONF_SERIAL),
-        host=entry.data.get(CONF_HOST),
+        host=entry.data.get(CONF_IP),
         port=entry.data.get(CONF_PORT, DEFAULT_LOCAL_PORT),
         ssl_context=ssl_context,
     )

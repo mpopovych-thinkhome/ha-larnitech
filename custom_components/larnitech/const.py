@@ -1,4 +1,4 @@
-# Updated: 2026-06-26 14:30
+# Updated: 2026-08-18 15:40
 """Constants for the Larnitech integration."""
 
 DOMAIN = "larnitech"
@@ -13,7 +13,7 @@ CONN_CLOUD = "cloud"
 # Connection (stored in entry.data, edited via Reconfigure flow)
 CONF_CONNECTION_TYPE = "connection_type"
 CONF_SERIAL = "serial"
-CONF_HOST = "host"
+CONF_IP = "host"
 CONF_PORT = "port"
 CONF_KEY = "key"
 
@@ -22,13 +22,19 @@ CONF_AUTO_REMOVE = "auto_remove"
 CONF_UPDATE_NAMES = "update_names"
 CONF_USE_AREAS = "use_areas"
 CONF_UPDATE_AREAS = "update_areas"
+CONF_READ_ONLY = "read_only"
 
-# All toggles default ON.
+OPTIONS_KEYS = (
+    CONF_AUTO_REMOVE, CONF_UPDATE_NAMES, CONF_USE_AREAS, CONF_UPDATE_AREAS, CONF_READ_ONLY,
+)
+
+# All toggles default ON, except `read_only` — opt-in, changes write behavior.
 TOGGLE_DEFAULTS = {
     CONF_AUTO_REMOVE: True,
     CONF_UPDATE_NAMES: True,
     CONF_USE_AREAS: True,
     CONF_UPDATE_AREAS: True,
+    CONF_READ_ONLY: False,
 }
 
 DEFAULT_LOCAL_PORT = 2041
@@ -49,6 +55,7 @@ PLATFORMS = [
     "cover",
     "climate",
     "button",
+    "number",
 ]
 
 # `lamp` sub-type -> HA platform. Absent sub-type = plain light.
@@ -70,7 +77,19 @@ def lamp_platform(device: dict) -> str | None:
     return LAMP_PLATFORM.get(device.get("sub-type") or None)
 
 
-# Device types this integration maps to a platform (lamp dispatched by sub-type).
+# `virtual` sub-type -> HA platform. Most `virtual` sub-types are still
+# unmapped (Phase 3 backlog) — only list the ones actually handled.
+VIRTUAL_PLATFORM = {
+    "ventilation": "climate",
+}
+
+
+def virtual_platform(device: dict) -> str | None:
+    """HA platform for a `virtual` device by sub-type; None = unknown, skip."""
+    return VIRTUAL_PLATFORM.get(device.get("sub-type"))
+
+
+# Device types this integration maps to a platform (lamp/virtual dispatched by sub-type).
 HANDLED_TYPES = {
     "temperature-sensor",
     "humidity-sensor",
@@ -84,6 +103,7 @@ HANDLED_TYPES = {
     "lamp",
     "dimmer-lamp",
     "rgb-lamp",
+    "light-scheme",
     "blinds",
     "jalousie",
     "gate",
@@ -92,12 +112,18 @@ HANDLED_TYPES = {
     "AC",
     "conditioner",
     "fancoil",
+    "valve",
+    "vent",
 }
 
 
 def unhandled_reason(device: dict) -> str | None:
     """Why a device maps to no platform (for diagnostics), or None if handled."""
     dtype = device.get("type")
+    if dtype == "virtual":
+        if virtual_platform(device) is None:
+            return f"virtual with unhandled sub-type {device.get('sub-type')!r}"
+        return None
     if dtype not in HANDLED_TYPES:
         return f"unknown type {dtype!r}"
     if dtype == "lamp" and lamp_platform(device) is None:

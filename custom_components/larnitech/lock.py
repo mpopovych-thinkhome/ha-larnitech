@@ -1,5 +1,5 @@
-# Updated: 2026-06-26 14:30
-"""Larnitech lamp `lock` sub-type mapped to lock (state on = locked)."""
+# Updated: 2026-08-14 12:00
+"""Larnitech lamp `lock` sub-type mapped to lock (state off = locked, confirmed live 2026-08-14)."""
 from __future__ import annotations
 
 from homeassistant.components.lock import ENTITY_ID_FORMAT, LockEntity
@@ -37,10 +37,10 @@ class LarnitechLock(LarnitechEntity, LockEntity):
 
     @property
     def is_locked(self) -> bool:
-        return self.is_state_on
+        return not self.is_state_on
 
     async def async_lock(self, **kwargs) -> None:
-        await self.async_set_state(True)
+        await self.async_set_state(False)
 
     async def async_unlock(self, **kwargs) -> None:
-        await self.async_set_state(False)
+        await self.async_set_state(True)

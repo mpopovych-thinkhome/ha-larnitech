@@ -1,14 +1,17 @@
-# Updated: 2026-06-26 14:30
+# Updated: 2026-08-17 12:30
 """Larnitech lights: lamp (on/off), dimmer-lamp (brightness), rgb-lamp (color).
 
 lamp sub-types that are not lights (socket, lock, ...) are claimed by their own
-platforms via `lamp_platform`. The dimmer `level` (0.0-1.0) and rgb `r/g/b`
-status/write keys are PROVISIONAL until confirmed against a live device."""
+platforms via `lamp_platform`. `level`, `saturation` AND `hue` are all 0-100
+integer percent (hue = position around the color wheel as a percentage, not
+degrees) — confirmed live 2026-08-14: red mapped correctly at hue=0, but
+green/blue showed as orange/acid-yellow until hue was scaled ×3.6 to degrees.
+Always write integers, never fractions."""
 from __future__ import annotations
 
 from homeassistant.components.light import (
     ATTR_BRIGHTNESS,
-    ATTR_RGB_COLOR,
+    ATTR_HS_COLOR,
     ENTITY_ID_FORMAT,
     ColorMode,
     LightEntity,
@@ -84,7 +87,7 @@ class LarnitechDimmer(LarnitechEntity, LightEntity):
     def brightness(self) -> int | None:
         level = self.status.get("level")
         if isinstance(level, (int, float)):
-            return round(level * 255)
+            return round(level / 100 * 255)
         if self.is_state_on:
             self._warn_once(
                 "level",
@@ -96,9 +99,8 @@ class LarnitechDimmer(LarnitechEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         if ATTR_BRIGHTNESS in kwargs:
-            level = round(kwargs[ATTR_BRIGHTNESS] / 255, 3)
-            await self.coordinator.client.async_set_status(self._addr, {"level": level})
-            await self.coordinator.async_request_refresh()
+            level = round(kwargs[ATTR_BRIGHTNESS] / 255 * 100)
+            await self.async_write_status({"level": level})
         else:
             await self.async_set_state(True)
 
@@ -107,8 +109,8 @@ class LarnitechDimmer(LarnitechEntity, LightEntity):
 
 
 class LarnitechRgb(LarnitechEntity, LightEntity):
-    _attr_color_mode = ColorMode.RGB
-    _attr_supported_color_modes = {ColorMode.RGB}
+    _attr_color_mode = ColorMode.HS
+    _attr_supported_color_modes = {ColorMode.HS}
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
@@ -119,26 +121,43 @@ class LarnitechRgb(LarnitechEntity, LightEntity):
         return self.is_state_on
 
     @property
-    def rgb_color(self) -> tuple[int, int, int] | None:
-        r, g, b = self.status.get("r"), self.status.get("g"), self.status.get("b")
-        if None in (r, g, b):
+    def brightness(self) -> int | None:
+        level = self.status.get("level")
+        if isinstance(level, (int, float)):
+            return round(level / 100 * 255)
+        if self.is_state_on:
+            self._warn_once(
+                "level",
+                "Larnitech rgb-lamp %s: missing/non-numeric 'level' while on (status=%s)",
+                self.entity_id,
+                self.status,
+            )
+        return None
+
+    @property
+    def hs_color(self) -> tuple[float, float] | None:
+        hue, saturation = self.status.get("hue"), self.status.get("saturation")
+        if hue is None or saturation is None:
             if self.is_state_on:
                 self._warn_once(
-                    "rgb",
-                    "Larnitech rgb-lamp %s: missing r/g/b while on (status=%s)",
+                    "hs",
+                    "Larnitech rgb-lamp %s: missing hue/saturation while on (status=%s)",
                     self.entity_id,
                     self.status,
                 )
             return None
-        return (int(r), int(g), int(b))
+        return (float(hue) * 3.6, float(saturation))
 
     async def async_turn_on(self, **kwargs) -> None:
-        if ATTR_RGB_COLOR in kwargs:
-            r, g, b = kwargs[ATTR_RGB_COLOR]
-            await self.coordinator.client.async_set_status(
-                self._addr, {"r": r, "g": g, "b": b}
-            )
-            await self.coordinator.async_request_refresh()
+        status = {}
+        if ATTR_HS_COLOR in kwargs:
+            hue, saturation = kwargs[ATTR_HS_COLOR]
+            status["hue"] = round(hue / 3.6)
+            status["saturation"] = round(saturation)
+        if ATTR_BRIGHTNESS in kwargs:
+            status["level"] = round(kwargs[ATTR_BRIGHTNESS] / 255 * 100)
+        if status:
+            await self.async_write_status(status)
         else:
             await self.async_set_state(True)
 
