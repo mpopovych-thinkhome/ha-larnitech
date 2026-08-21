@@ -1,10 +1,16 @@
-# Updated: 2026-06-26 14:30
+# Updated: 2026-08-20 15:05
 """Larnitech covers: blinds / jalousie / gate.
 
-Position scale is Larnitech `0.0` = open .. `1.0` = closed (inverse of HA, where
-100 = open). The `target` write key and the `stop` command are PROVISIONAL,
-inferred from a single live blinds payload; jalousie tilt is not implemented yet
-(no sample available)."""
+Two different control models, confirmed live 2026-08-20:
+- `blinds` has a real `position`/`target` on a **0-100** scale, inverted vs HA:
+  Larnitech `0` = open, `100` = closed. A moving motor can read slightly past
+  either end stop, so the HA percentage is clamped.
+- `jalousie`/`gate` have no position at all — only `state`, driven by the verb
+  form (`open`/`close`). Writing the participle the status reports back
+  (`opened`/`closed`) is acked but does nothing. Their percentage is derived
+  from `state` for display only (see `STATE_POSITION`).
+
+Jalousie tilt is not implemented yet (no sample available)."""
 from __future__ import annotations
 
 from homeassistant.components.cover import (
@@ -19,12 +25,32 @@ from homeassistant.core import callback
 from .const import DOMAIN
 from .entity import LarnitechEntity
 
-# Larnitech type -> (device_class, has_position).
+# Larnitech type -> (device_class, has_position). Only `blinds` carries a
+# position; the others are state-only (see module docstring).
 COVERS = {
     "blinds": (CoverDeviceClass.SHADE, True),
-    "jalousie": (CoverDeviceClass.BLIND, True),
+    "jalousie": (CoverDeviceClass.BLIND, False),
     "gate": (CoverDeviceClass.GATE, False),
 }
+
+# `state` -> read-only percentage for the position-less types. HA's cover
+# domain has no "partially open" state, so Larnitech's `middle` is surfaced
+# as 50% — indication only, these types never get SET_POSITION.
+STATE_POSITION = {
+    "opened": 100,
+    "open": 100,
+    "middle": 50,
+    "closed": 0,
+}
+
+# `virtual` sub-types `jalousie`/`gate`(+`120`) are NOT dispatched here:
+# confirmed live 2026-08-20 their status carries no `state` at all, only an
+# undocumented `hex` field — the verb-form open/close model below does not
+# apply to them. See `larnitech_integration_spec.md` "Virtual" table.
+
+
+def _cover_config(device: dict):
+    return COVERS.get(device.get("type"))
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -33,9 +59,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     @callback
     def _add_new():
-        current = {a for a, d in coordinator.data.items() if d.get("type") in COVERS}
+        current = {a for a, d in coordinator.data.items() if _cover_config(d)}
         new = [
-            LarnitechCover(coordinator, a, *COVERS[coordinator.data[a]["type"]])
+            LarnitechCover(coordinator, a, *_cover_config(coordinator.data[a]))
             for a in current - known
         ]
         known.clear()
@@ -65,11 +91,11 @@ class LarnitechCover(LarnitechEntity, CoverEntity):
     @property
     def current_cover_position(self) -> int | None:
         if not self._has_position:
-            return None
+            return STATE_POSITION.get(self.status.get("state"))
         pos = self.status.get("position")
         if not isinstance(pos, (int, float)):
             return None
-        return round((1 - pos) * 100)
+        return max(0, min(100, round(100 - pos)))
 
     @property
     def is_closed(self) -> bool | None:
@@ -92,13 +118,19 @@ class LarnitechCover(LarnitechEntity, CoverEntity):
         return self.status.get("state") == "closing"
 
     async def async_open_cover(self, **kwargs) -> None:
-        await self.async_write_status({"target": 0.0})
+        if self._has_position:
+            await self.async_write_status({"target": 0})
+        else:
+            await self.async_write_status({"state": "open"})
 
     async def async_close_cover(self, **kwargs) -> None:
-        await self.async_write_status({"target": 1.0})
+        if self._has_position:
+            await self.async_write_status({"target": 100})
+        else:
+            await self.async_write_status({"state": "close"})
 
     async def async_set_cover_position(self, **kwargs) -> None:
-        target = round(1 - kwargs[ATTR_POSITION] / 100, 3)
+        target = 100 - kwargs[ATTR_POSITION]
         await self.async_write_status({"target": target})
 
     async def async_stop_cover(self, **kwargs) -> None:

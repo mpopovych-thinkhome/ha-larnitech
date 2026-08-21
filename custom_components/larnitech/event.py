@@ -1,13 +1,21 @@
-# Updated: 2026-06-26 14:30
-"""Larnitech physical buttons (`switch`) as event entities (press / hold).
+# Updated: 2026-08-20 13:50
+"""Larnitech physical buttons (`switch`) as event entities.
 
-A `switch` widget is a physical button input, NOT a relay. The decoded status
-carries the gesture; pushes arrive as status changes, so each gesture fires an
-HA event. The byte->gesture decode is provisional until confirmed against a
-live press on the stand (watch the logbook while pressing)."""
+A `switch` widget is a physical button input, NOT a relay. Status carries no
+`state` key at all — it's a raw `{"hex": "0xBBCC"}` pair confirmed live
+2026-08-20: byte0 (`BB`) is the key state (`0xFC` pressed, `0xFD` held,
+`0xFF` released), byte1 (`CC`) a hold-duration counter in 128ms ticks.
+
+Event names follow the Hue convention, HA's reference vocabulary for a
+button that reports down / held / up.
+
+**One WS push = one event.** Firing off the entity's own status is wrong:
+HA runs every listener on every coordinator update (polls included, and any
+other device's push), while `merge_status` never clears `hex` — so reading
+the status unconditionally re-fired the last gesture hundreds of times an
+hour. `coordinator.event_addrs` marks the addrs that actually arrived in
+the push being delivered; anything else is a poll and must stay silent."""
 from __future__ import annotations
-
-import logging
 
 from homeassistant.components.event import (
     ENTITY_ID_FORMAT,
@@ -19,29 +27,29 @@ from homeassistant.core import callback
 from .const import DOMAIN
 from .entity import LarnitechEntity
 
-_LOGGER = logging.getLogger(__name__)
-
 TYPE = "switch"
 
-EVENT_PRESS = "press"
-EVENT_HOLD = "hold"
+EVENT_PRESS = "initial_press"
+EVENT_REPEAT = "repeat"
+EVENT_SHORT_RELEASE = "short_release"
+EVENT_LONG_RELEASE = "long_release"
 
-# Raw status.state values treated as the resting (no-gesture) state.
-_IDLE_VALUES = {None, "", "off", "0", "0x00", "idle", "released", "release", 0, False}
-# Raw values that mean a long press; anything else non-idle is a short press.
-_HOLD_VALUES = {"hold", "long", "long-press", "0x02"}
+_PRESSED = 0xFC
+_HELD = 0xFD
+_RELEASED = 0xFF
+
+_TICK_MS = 128
 
 
-def _decode_event(raw) -> str | None:
-    """Map a raw `status.state` to an event_type, or None when idle.
-
-    PROVISIONAL: exact decoded values are unconfirmed. Confirm on the stand
-    and adjust _IDLE_VALUES / _HOLD_VALUES accordingly."""
-    if raw in _IDLE_VALUES:
-        return None
-    if isinstance(raw, str) and raw.strip().lower() in _HOLD_VALUES:
-        return EVENT_HOLD
-    return EVENT_PRESS
+def _parse(raw) -> tuple[int | None, int]:
+    """Split the `hex` status field into (key state, duration ms)."""
+    if not isinstance(raw, str):
+        return None, 0
+    try:
+        value = int(raw, 16)
+    except ValueError:
+        return None, 0
+    return (value >> 8) & 0xFF, (value & 0xFF) * _TICK_MS
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -63,27 +71,31 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class LarnitechButton(LarnitechEntity, EventEntity):
     _attr_device_class = EventDeviceClass.BUTTON
-    _attr_event_types = [EVENT_PRESS, EVENT_HOLD]
+    _attr_event_types = [
+        EVENT_PRESS,
+        EVENT_REPEAT,
+        EVENT_SHORT_RELEASE,
+        EVENT_LONG_RELEASE,
+    ]
+    _attr_icon = "mdi:light-switch"
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
         self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
-        # Seed with the current value so a stale status doesn't fire on startup.
-        self._last = self.status.get("state")
 
     @callback
     def _handle_coordinator_update(self) -> None:
-        raw = self.status.get("state")
-        if raw != self._last:
-            self._last = raw
-            # Log the real value so the provisional decode can be corrected.
-            _LOGGER.debug(
-                "Larnitech button %s: raw state -> %r (status=%s)",
-                self.entity_id,
-                raw,
-                self.status,
-            )
-            event_type = _decode_event(raw)
-            if event_type:
-                self._trigger_event(event_type)
+        if self._addr in self.coordinator.event_addrs:
+            key_state, duration_ms = _parse(self.status.get("hex"))
+            if key_state == _PRESSED:
+                self._trigger_event(EVENT_PRESS)
+            elif key_state == _HELD:
+                self._trigger_event(EVENT_REPEAT, {"duration_ms": duration_ms})
+            elif key_state == _RELEASED:
+                # The counter is the whole distinction: a tap releases with it
+                # still at zero, anything held long enough to tick is a long
+                # press ending.
+                event = EVENT_LONG_RELEASE if duration_ms else EVENT_SHORT_RELEASE
+                self._trigger_event(event, {"duration_ms": duration_ms})
+
         super()._handle_coordinator_update()

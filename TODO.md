@@ -3,16 +3,41 @@
 Backlog of features and ideas. When a task is done, **remove it from here** and
 add it to `CHANGELOG.md` (under `### Added` / `### Fixed`).
 
-## Phase 3 — remaining widget types
+## Phase 3 — widget types
 
+**Done** — every widget type is now either implemented or explicitly dropped.
 Mapping reference: `larnitech_integration_spec.md` → "Карта маппинга типов".
 
-- [ ] `virtual` sub-types: `sensor`/`text`/`long-text`/`prf`→sensor, `lamp`/`dimer-lamp`/`rgb-lamp`→light, `jalousie`/`gate`(+`120`)→cover
+Dropped by decision, not backlog (do NOT re-add without a new decision):
+`virtual/prf`, `virtual/jalousie`+`120`, `virtual/gate`+`120`, `virtual/sunrise`,
+`virtual/plan`, `virtual/btunreg`, `virtual/lamp`, `virtual/dimer-lamp`,
+`virtual/rgb-lamp`, `json/btunreg`, `security-card-reader`, `ir-receiver`,
+`ir-transmitter`, `remote-control`, `rtsp`, `speaker`, `intercom`, `item-ref`,
+`com-port`. Reasons per type are in the spec's mapping tables.
+
+Blocked on hardware, not on code — needs a real object, can't be reproduced on
+the stand (implemented, dispatch verified, "on" state never observed live):
+
+- [ ] `current-sensor`, `motion-sensor`, `leak-sensor`, `door-sensor` (no sub-type)
+
+## Safety
+
+- [ ] Guard against mass device removal: if a `get-devices` snapshot is missing
+  more than half of the previously-known devices (vs. flat-out empty, already
+  handled — see spec's "Жизненный цикл (reconcile)"), the coordinator must NOT
+  silently auto-remove them via the normal `auto_remove` / 2-missed-snapshots
+  path. Instead, raise an HA repair issue (`issue_registry`) with a confirm
+  action, e.g. "На Larnitech объекте пропало больше половины устройств, вы
+  хотите удалить их из HA?" — actual removal only happens if the user
+  confirms. Rationale: a >50% drop is far more likely a controller/network
+  hiccup (bad `get-devices` reply, object misconfigured, wrong server) than a
+  real mass-deletion on the Larnitech side, and the existing 2-consecutive-
+  snapshot debounce doesn't protect against a hiccup that persists across
+  both polls.
 
 ## Distribution
 
-- [ ] HACS support (decide repo layout / `hacs.json`)
-- [ ] Larnitech icon + logo — PR to `home-assistant/brands` (`custom_integrations/larnitech`: `icon.png` 256×256, `icon@2x.png` 512×512, `logo.png`) so HA/HACS shows the Larnitech logo instead of the placeholder
+- [ ] HACS support (decide repo layout / `hacs.json`) — note: HACS doesn't yet read the local `brand/` folder (open HACS bug), so it'll show "icon not available" until either HACS adds support or the `home-assistant/brands` PR (#11017) merges
 
 ## Ideas / nice-to-have
 

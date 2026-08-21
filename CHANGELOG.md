@@ -5,13 +5,74 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.8.0-alpha] - 2026-08-21
 
-Climate platform (`valve-heating`/`fancoil`/`climate-control`/`AC`/`conditioner`/
-`virtual/ventilation`/`vent`) is complete — see `[0.6.0]` below. Next up:
-remaining small `virtual` sub-types (`sensor`/`text`/`long-text`/`prf`/`lamp`/
-`dimer-lamp`/`rgb-lamp`/`jalousie`/`gate`(+120)), tracked as `0.7.0` — see
-`TODO.md` → "Phase 3 — remaining widget types".
+Phase 3 complete — every Larnitech widget type is now either implemented or
+explicitly dropped by decision (see `TODO.md` → "Phase 3 — widget types" for
+the drop list and reasons). This closes out the `virtual`/`json` sub-type
+sweep that `[0.6.1]` left as "next up".
+
+### Added
+- `virtual` sub-types `sensor`/`text`/`long-text` → `sensor`. `sensor` is
+  numeric (`state_class=MEASUREMENT`, icon `mdi:numeric`) so history/
+  statistics/chart cards work on it; `text`/`long-text` carry a string
+  (icons `mdi:format-text`/`mdi:card-text`). Every text-type widget now
+  always exposes the untruncated value in a `full_text` attribute (not only
+  when the 255-char `state` ceiling forces truncation) — one consistent
+  place for automations to read the whole thing regardless of length.
+- New `json` type (any sub-type except `btunreg`, e.g. the `MBUS` meter
+  sub-type) → dynamic per-field `sensor` generation, the first Larnitech
+  type in this integration with no fixed field list. Each numeric field in
+  `status._raw` self-describes via `descr[<key>]` (`typ` name, optional
+  `dim` unit, optional `func`); `dim` is mapped to a real `device_class`/
+  `unit`/`state_class` (`JSON_DIM_MAP` in `sensor.py`: `Wh`→energy,
+  `m3`→volume, `W`→power, `C`/`K`→temperature, `m3/h`→volume_flow_rate,
+  `seconds`/`days`→duration); a field with no `dim` (serial numbers, raw
+  timestamps, bitmasks) is diagnostic-only. `descr.typ` `"On Time"`/
+  `"Operating Time"` fields render as `"N years, M months"` (icon
+  `mdi:camera-timer`) instead of a raw number, with the raw value kept in a
+  `raw_seconds`/`raw_days` attribute. `hr` (a compact model/serial
+  identifier) becomes the device's `hw_version`, not its own entity.
+  `json/btunreg` is deliberately excluded — confirmed live it's an
+  empty/raw diagnostic aggregate with no useful fields. Live-verified on
+  3 MBUS heat/water meters (41 entities, all units/values matched the raw
+  `get-devices` payload).
+- `binary_sensor`'s malfunction companion entity (`<slug>_malfunction`,
+  `device_class=problem`, diagnostic) extended from `leak-sensor`-only to
+  also cover the real `rgb-lamp` type.
+- Local `brand/` folder (`custom_components/larnitech/brand/`: `icon.png`/
+  `icon@2x.png`/`logo.png`/`logo@2x.png`/`dark_logo.png`/`dark_logo@2x.png`)
+  — HA ≥2026.3 now shows the actual Larnitech mark in Settings → Devices &
+  Services instead of the generic puzzle-piece placeholder. Also opened
+  `home-assistant/brands#11017` for the same images, for HA <2026.3 and for
+  whenever HACS starts reading the local path (it doesn't yet).
+
+### Fixed
+- `virtual` sub-types `prf`, `jalousie`/`jalousie120`, `gate`/`gate120`: were
+  tentatively mapped to the same models as their standalone counterparts,
+  but confirmed live 2026-08-21 they carry no `state` at all — only an
+  undocumented `hex` field. Dropped rather than guessing at the format.
+- `virtual` sub-types `lamp`/`dimer-lamp`/`rgb-lamp`: implemented, live-
+  verified working, then dropped by decision after their only live examples
+  turned out unstable — the `rgb-lamp` one reported `level`/`saturation`/
+  `hue` all `101.6`, past the valid 0-100 range.
+- `virtual/sensor` could take down the whole `sensor` platform setup with an
+  unhandled `ValueError` on every coordinator update: a numeric widget can
+  legitimately report the string `"undefined"` before its script produces a
+  real value, which `state_class=MEASUREMENT` doesn't tolerate. A
+  non-numeric value is now reported as `unknown` instead of passed through.
+- `json`: `_raw` and `_raw.descr` can be present but `null` (not merely
+  absent) — a meter that misses a poll cycle returns *every* field,
+  `descr`/`hr` included, as `null` rather than omitting them or keeping
+  stale values. `.get("descr", {})`-style calls don't cover an explicit
+  `null`; fixed to `(... or {})` everywhere this is read.
+- `json` field classification (name, icon, `device_class`, unit, duration
+  formatting) was captured once at entity creation — a field first created
+  during one of the null ticks above got stuck showing a generic `"Field
+  N"` name (or a raw number instead of the humanized duration) forever,
+  even after real data started arriving. Rewritten to read live from
+  `descr` on every access, backed by a last-known-good cache so it doesn't
+  flap back to the fallback on the *next* null tick either.
 
 ## [0.6.1] - 2026-08-18
 

@@ -1,4 +1,4 @@
-# Updated: 2026-08-18 15:40
+# Updated: 2026-08-21 10:38
 """Constants for the Larnitech integration."""
 
 DOMAIN = "larnitech"
@@ -77,16 +77,43 @@ def lamp_platform(device: dict) -> str | None:
     return LAMP_PLATFORM.get(device.get("sub-type") or None)
 
 
-# `virtual` sub-type -> HA platform. Most `virtual` sub-types are still
-# unmapped (Phase 3 backlog) — only list the ones actually handled.
+# `virtual` sub-type -> HA platform. `sensor`/`text`/`long-text` carry
+# their value in `status.state` (confirmed live 2026-08-20).
+#
+# Deliberately excluded (confirmed live 2026-08-20/21, not just undecided):
+# `jalousie`/`gate`(+`120`) carry no `state` at all, only an undocumented
+# `hex` field — the real cover types' open/close model does not apply;
+# `prf` also has no `state`, only `hex`; `sunrise`/`plan` are `hex`/`state`
+# with no known meaning. `lamp`/`dimer-lamp`/`rgb-lamp` all cancelled, user
+# call 2026-08-21 — every live example reported erroneous/unstable status
+# (`rgb-lamp` 1:224: `level`/`saturation`/`hue` all `101.6`, past the valid
+# 0-100 range). See `larnitech_integration_spec.md` "Virtual" table.
 VIRTUAL_PLATFORM = {
     "ventilation": "climate",
+    "sensor": "sensor",
+    "text": "sensor",
+    "long-text": "sensor",
 }
 
 
 def virtual_platform(device: dict) -> str | None:
     """HA platform for a `virtual` device by sub-type; None = unknown, skip."""
     return VIRTUAL_PLATFORM.get(device.get("sub-type"))
+
+
+# `json` sub-types deliberately NOT dispatched — user call 2026-08-21.
+# `btunreg` (`900:1` on the Imerel stand) is a raw, mostly-empty diagnostic
+# blob with no useful fields (confirmed live). Any other sub-type (e.g.
+# `MBUS` meters, confirmed live on a separate object with real Energy/
+# Volume/Temperature fields) IS handled generically — see sensor.py.
+JSON_EXCLUDED_SUBTYPES = {"btunreg"}
+
+
+def json_platform(device: dict) -> str | None:
+    """HA platform for a `json` device by sub-type; None = excluded/unknown."""
+    if device.get("sub-type") in JSON_EXCLUDED_SUBTYPES:
+        return None
+    return "sensor"
 
 
 # Device types this integration maps to a platform (lamp/virtual dispatched by sub-type).
@@ -123,6 +150,10 @@ def unhandled_reason(device: dict) -> str | None:
     if dtype == "virtual":
         if virtual_platform(device) is None:
             return f"virtual with unhandled sub-type {device.get('sub-type')!r}"
+        return None
+    if dtype == "json":
+        if json_platform(device) is None:
+            return f"json with excluded sub-type {device.get('sub-type')!r}"
         return None
     if dtype not in HANDLED_TYPES:
         return f"unknown type {dtype!r}"

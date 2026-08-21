@@ -1,4 +1,4 @@
-# Updated: 2026-08-17 12:30
+# Updated: 2026-08-21 10:34
 """Larnitech lights: lamp (on/off), dimmer-lamp (brightness), rgb-lamp (color).
 
 lamp sub-types that are not lights (socket, lock, ...) are claimed by their own
@@ -20,6 +20,11 @@ from homeassistant.core import callback
 
 from .const import DOMAIN, lamp_platform
 from .entity import LarnitechEntity
+
+# `virtual` sub-types `lamp`/`dimer-lamp`/`rgb-lamp` deliberately NOT
+# dispatched here — all three were tried and cancelled (user call
+# 2026-08-21): the only live examples reported erroneous/unstable status.
+# See const.py VIRTUAL_PLATFORM and larnitech_integration_spec.md "Virtual".
 
 
 def _light_class(device: dict):

@@ -1,4 +1,4 @@
-# Updated: 2026-08-17 16:00
+# Updated: 2026-08-20 14:25
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -6,6 +6,7 @@ device changing type, and sync names / rooms per the entry's toggles."""
 from __future__ import annotations
 
 import logging
+import time
 from datetime import timedelta
 
 from homeassistant.core import callback
@@ -34,6 +35,16 @@ _LOGGER = logging.getLogger(__name__)
 
 # Debounce for the rare full refresh (reconnect / unknown-addr fallback).
 _REFRESH_COOLDOWN = 2.0
+
+# Log (never act) once a run of failed polls has left the object stale this
+# long. `async_get_devices` already times out well under this (15-20s), so
+# reaching it means several polls failed in a row — not a single slow one.
+# Deliberately log-only: an integration-side watchdog can't reliably act on
+# the case that actually matters (the whole HA event loop wedged, as seen
+# live 2026-08-20 on a stuck core restart) — if the loop is that stuck, this
+# code doesn't get to run either. Auto-restarting HA core from here would
+# also risk a restart loop on a merely-flaky connection. A human decides.
+_STALE_THRESHOLD = 60
 
 # Climate setpoints are a group that must be REPLACED, not merged. Larnitech
 # only sends the setpoints the active automation actually uses (a
@@ -73,6 +84,15 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         self._missing: dict[str, int] = {}
         # (type, sub-type) pairs already reported as unmapped — log each once.
         self._logged_unmapped: set = set()
+        # Addrs whose status arrived in the push event currently being
+        # delivered to listeners; empty for a poll-driven update. Momentary
+        # entities (buttons) fire only when their addr is in here: HA runs
+        # EVERY listener on EVERY coordinator update, so without this a
+        # button re-reads its own last `hex` — which `merge_status` never
+        # clears — and re-fires on each poll and on every other device's push.
+        self.event_addrs: frozenset[str] = frozenset()
+        self._last_success = time.monotonic()
+        self._stale_logged = False
 
         # Resolved toggles (options override data, default ON).
         self.auto_remove = toggle(entry, CONF_AUTO_REMOVE)
@@ -82,10 +102,15 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         self.read_only = toggle(entry, CONF_READ_ONLY)
 
     async def _async_update_data(self) -> dict[str, dict]:
+        # A poll is not a device event — see `event_addrs`.
+        self.event_addrs = frozenset()
         try:
             devices = await self.client.async_get_devices()
         except LarnitechError as err:
+            self._check_stale()
             raise UpdateFailed(str(err)) from err
+        self._last_success = time.monotonic()
+        self._stale_logged = False
         data = {d["addr"]: d for d in devices if "addr" in d}
         # An empty snapshot is never a real "the controller has no devices" —
         # `async_get_devices` returns [] for a malformed/`devices`-less reply
@@ -100,6 +125,18 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         self._log_unmapped(data)
         self._reconcile(data)
         return data
+
+    def _check_stale(self) -> None:
+        elapsed = time.monotonic() - self._last_success
+        if elapsed >= _STALE_THRESHOLD and not self._stale_logged:
+            self._stale_logged = True
+            _LOGGER.error(
+                "Larnitech %s: no successful update for %.0fs (last error: %s) — "
+                "object may be unreachable, or HA itself may be under load",
+                self.entry.title,
+                elapsed,
+                self.last_exception,
+            )
 
     @callback
     def _log_unmapped(self, data: dict[str, dict]) -> None:
@@ -133,7 +170,7 @@ class LarnitechCoordinator(DataUpdateCoordinator):
             return
 
         updated = dict(self.data)
-        changed = False
+        pushed: set[str] = set()
         need_full = False
         verify: list[str] = []
         for dev in devices:
@@ -156,7 +193,7 @@ class LarnitechCoordinator(DataUpdateCoordinator):
             merged = dict(updated[addr])
             merged["status"] = merge_status(merged.get("status", {}), status)
             updated[addr] = merged
-            changed = True
+            pushed.add(addr)
             # A preset switch can change which setpoints exist at all — and an
             # event only carries what changed, so "no setpoint key" here is
             # ambiguous (unchanged, or gone with the old automation?). Re-read
@@ -164,8 +201,12 @@ class LarnitechCoordinator(DataUpdateCoordinator):
             if "automation" in status:
                 verify.append(addr)
 
-        if changed:
+        if pushed:
+            # Listeners run synchronously inside async_set_updated_data, so
+            # this window is exactly the push delivery and nothing else.
+            self.event_addrs = frozenset(pushed)
             self.async_set_updated_data(updated)
+            self.event_addrs = frozenset()
         if need_full:
             self.hass.async_create_task(self.async_request_refresh())
         for addr in verify:
