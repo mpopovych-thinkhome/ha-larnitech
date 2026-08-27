@@ -1,4 +1,4 @@
-# Updated: 2026-08-18 16:20
+# Updated: 2026-08-27 15:39
 """Larnitech number: bare `vent`'s CO2 setpoint (`status.target`). The entity
 always exists for every `vent` widget — it goes `unavailable` rather than
 disappearing when no CO2 automation is linked (per user decision 2026-08-18:
@@ -35,7 +35,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

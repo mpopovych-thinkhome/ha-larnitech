@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2-alpha] - 2026-08-27
+
+Follow-up to 0.9.1, found by measuring the same object once it would stay up
+long enough to measure. Same shape of bug, one layer down.
+
+### Fixed
+- **Every platform re-scanned the whole device map on every push event.**
+  Each platform registers a "has a new device appeared?" listener that walks
+  all of `coordinator.data`, so the cost was `platforms x devices` per event
+  — 12 x 1728 x ~40 events/s, roughly 830k iterations per second on the
+  Kaunas object, and the bulk of the ~50% CPU that remained after 0.9.1.
+  These scans now run on polls only. A push cannot introduce a device:
+  `apply_events` routes an unknown addr to a full refresh instead of
+  inventing an entry, and `async_refresh_addr` only touches an addr it
+  already holds — so on a push the scan could never find anything.
+  Registration moved from `coordinator.async_add_listener` to
+  `coordinator.add_discovery_listener`, which applies the guard in one place
+  rather than repeating it twelve times.
+
+### Note on the measurement
+The push rate looked like ~8 events/s before 0.9.1 and ~40/s after. The
+object did not get busier — the event loop had simply been too congested to
+keep up with its own queue, so the earlier figure was the backlog draining,
+not the real rate.
+
 ## [0.9.1-alpha] - 2026-08-27
 
 Scaling and failure-reporting fixes, all three found by taking a large

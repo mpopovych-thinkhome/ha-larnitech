@@ -1,4 +1,4 @@
-# Updated: 2026-08-14 12:00
+# Updated: 2026-08-27 15:39
 """Larnitech lamp sub-types mapped to switch (socket / pump / closing-switch),
 plus `light-scheme` (all `ls-type` variants — the API exposes the same
 `status.state` on/off shape regardless of variant; behavioral differences
@@ -37,7 +37,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

@@ -1,4 +1,4 @@
-# Updated: 2026-08-27 15:25
+# Updated: 2026-08-27 15:39
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -258,6 +258,30 @@ class LarnitechCoordinator(DataUpdateCoordinator):
                 addr,
                 dev,
             )
+
+    @callback
+    def add_discovery_listener(self, discover):
+        """Register a platform's "has a new device appeared?" scan.
+
+        Every platform registers one and each walks the whole device map, so
+        running them on every push event costs `platforms x devices`
+        iterations per event — ~830k/s on the 1728-device object at its real
+        ~40 events/s push rate, measured live 2026-08-27. That is where the
+        CPU went once 0.9.1 stopped the entity writes from dominating.
+
+        A push can never introduce a device: `apply_events` routes an unknown
+        addr to a full refresh instead of inventing an entry, and
+        `async_refresh_addr` only ever touches an addr it already holds. So
+        the scan is pure waste unless this update is a poll — which is
+        exactly what an empty `updated_addrs` marks."""
+
+        @callback
+        def _on_poll_only() -> None:
+            if self.updated_addrs:
+                return
+            discover()
+
+        return self.async_add_listener(_on_poll_only)
 
     @callback
     def apply_events(self, devices: list[dict]) -> None:
