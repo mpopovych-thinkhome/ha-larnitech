@@ -1,4 +1,4 @@
-# Updated: 2026-08-21 17:15
+# Updated: 2026-08-27 15:25
 """The Larnitech integration."""
 from __future__ import annotations
 
@@ -45,10 +45,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     client.set_resync_callback(
         lambda: hass.async_create_task(coordinator.async_request_refresh())
     )
+    client.set_auth_error_callback(coordinator.set_auth_failed)
 
     try:
         await client.async_start()
     except LarnitechError as err:
+        # Close before giving up: the supervisor task is already running its
+        # own reconnect loop, and ConfigEntryNotReady makes HA retry this
+        # whole function later — leaving it alive stacks up one independent
+        # reconnect loop per retry, all hammering the same controller.
+        # Observed live 2026-08-27 as several concurrent auth-rejection loops
+        # on a single entry.
+        await client.async_close()
         raise ConfigEntryNotReady(str(err)) from err
 
     await coordinator.async_config_entry_first_refresh()

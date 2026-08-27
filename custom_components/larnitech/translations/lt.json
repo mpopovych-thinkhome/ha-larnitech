@@ -99,6 +99,10 @@
     }
   },
   "issues": {
+    "auth_rejected": {
+      "title": "Larnitech ({title}): API raktas atmestas",
+      "description": "Valdiklis pasiekiamas, bet atmeta šį API raktą. Patikrinkite, ar raktas sutampa su nurodytu LT_Setup, ir ar šiam valdikliui įjungtas API — išjungtas API atmeta užklausą lygiai taip pat, kaip ir neteisingas raktas. Home Assistant toliau bando prisijungti fone, todėl šis pranešimas išnyks pats, kai tik valdiklis priims raktą."
+    },
     "mass_device_removal": {
       "title": "Larnitech ({title}): dingo daugiau nei pusė žinomų įrenginių",
       "fix_flow": {

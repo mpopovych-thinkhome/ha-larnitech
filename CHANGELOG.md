@@ -5,6 +5,50 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1-alpha] - 2026-08-27
+
+Scaling and failure-reporting fixes, all three found by taking a large
+(~2000-entity) object down live. Nothing here changes what the integration
+exposes — only how much work it does and how it reports being unable to
+connect.
+
+### Fixed
+- **A push event re-rendered every entity on the entry, not just the device
+  that changed.** `CoordinatorEntity` writes state on every coordinator
+  update and each push triggers one, so the cost was `event rate x entity
+  count` instead of `event rate`. Measured live 2026-08-27: ~2000 entities
+  x 3522 coordinator updates in 7.5 minutes blocked the event loop long
+  enough that Home Assistant stopped answering its own API, the Supervisor
+  wedged mid-job, and the VM needed a hard reset. Entities now skip the
+  write when their own addr is not among the ones that changed
+  (`coordinator.updated_addrs`); a poll still refreshes everything, since it
+  carries a complete snapshot. Small objects never showed this — the same
+  code had been running on ~100-device objects for weeks.
+  - `updated_addrs` is deliberately separate from the existing
+    `event_addrs`: the latter means "arrived in a push event" and drives
+    momentary entities, so the post-write verify can mark an addr as changed
+    without re-firing a button that never moved.
+- **A rejected API key logged a full traceback on every retry, forever.**
+  `LarnitechAuthError` had no branch of its own in the reconnect loop, so it
+  fell through to the catch-all and was reported as an unexpected crash —
+  64 tracebacks in 7 minutes, burying every other line in the log. It is now
+  reported once at ERROR (no traceback; `authorize rejected: Unauthorized`
+  already says everything), then stays quiet until the key works again, and
+  backs off up to 300s instead of 30s — the controller is answering, it just
+  refuses this key, so retrying fast achieves nothing.
+  - Retrying at all is still right: the identical rejection is what a
+    controller with its API switched off returns, and that recovers on its
+    own. So this raises a repair issue (`auth_rejected`, not fixable from
+    HA, clears itself on the next successful connect) rather than
+    `ConfigEntryAuthFailed`, which would stop the entry and wait for a human
+    to walk a reauth flow it does not need.
+- **A failed initial connection leaked its reconnect loop.** `async_start`
+  timing out raised `ConfigEntryNotReady` without closing the client, but
+  the supervisor task was already running — and Home Assistant retries the
+  whole setup on that exception, so each retry stacked one more independent
+  reconnect loop onto the same controller. Visible live as several
+  concurrent auth-rejection loops on a single entry.
+
 ## [0.9.0-alpha] - 2026-08-27
 
 Backlog cleanup — every remaining item from the 2026-08-21 backlog is closed

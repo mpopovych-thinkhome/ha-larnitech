@@ -1,4 +1,4 @@
-# Updated: 2026-08-21 18:05
+# Updated: 2026-08-27 15:25
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -125,6 +125,15 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         # button re-reads its own last `hex` — which `merge_status` never
         # clears — and re-fires on each poll and on every other device's push.
         self.event_addrs: frozenset[str] = frozenset()
+        # Addrs whose data actually changed in the update being delivered;
+        # empty means "assume everything did" (a poll carries a whole new
+        # snapshot). Entities skip their own state write when their addr is
+        # not in here — see `LarnitechEntity._handle_coordinator_update`.
+        # Deliberately NOT the same set as `event_addrs`: that one means
+        # specifically "arrived in a push event" and drives momentary
+        # entities, so a post-write verify may set this without re-firing a
+        # button that never moved.
+        self.updated_addrs: frozenset[str] = frozenset()
         self._last_success = time.monotonic()
         self._stale_logged = False
         # Mass-removal guard: latched state + the live set it would act on.
@@ -149,8 +158,11 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         )
 
     async def _async_update_data(self) -> dict[str, dict]:
-        # A poll is not a device event — see `event_addrs`.
+        # A poll is not a device event — see `event_addrs`. It also carries a
+        # whole fresh snapshot, so no addr is singled out: every entity
+        # re-reads (`updated_addrs` empty).
         self.event_addrs = frozenset()
+        self.updated_addrs = frozenset()
         try:
             devices = await self.client.async_get_devices()
         except LarnitechError as err:
@@ -294,9 +306,9 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         if pushed:
             # Listeners run synchronously inside async_set_updated_data, so
             # this window is exactly the push delivery and nothing else.
-            self.event_addrs = frozenset(pushed)
+            self.event_addrs = self.updated_addrs = frozenset(pushed)
             self.async_set_updated_data(updated)
-            self.event_addrs = frozenset()
+            self.event_addrs = self.updated_addrs = frozenset()
         if need_full:
             self.hass.async_create_task(self.async_request_refresh())
         for addr in verify:
@@ -339,7 +351,12 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         merged = dict(updated[addr])
         merged["status"] = device["status"]
         updated[addr] = merged
+        # Only this addr changed. `event_addrs` deliberately stays empty —
+        # this is a post-write verify, not a push, and a button must not
+        # re-fire its last gesture because of one.
+        self.updated_addrs = frozenset({addr})
         self.async_set_updated_data(updated)
+        self.updated_addrs = frozenset()
 
     # --- reconciliation (full snapshot only) -----------------------------
 
@@ -492,6 +509,31 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         # controller would never come back on its own. Reload rebuilds that
         # bookkeeping from scratch.
         self._schedule_reload("a mass removal was confirmed")
+
+    @callback
+    def set_auth_failed(self, failed: bool) -> None:
+        """Surface a rejected API key in Repairs, and clear it on recovery.
+
+        Deliberately not `ConfigEntryAuthFailed`: that stops the entry and
+        waits for a human to walk a reauth flow, but this rejection is just
+        as often the controller's API being switched off for a while (live
+        2026-08-27) — which fixes itself. An issue reports it without giving
+        up the retry that recovers from it. `is_fixable=False` because there
+        is nothing to confirm in HA; the key or the controller has to
+        change."""
+        issue_id = f"{self.entry.entry_id}_auth_rejected"
+        if not failed:
+            ir.async_delete_issue(self.hass, DOMAIN, issue_id)
+            return
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.ERROR,
+            translation_key="auth_rejected",
+            translation_placeholders={"title": self.entry.title},
+        )
 
     @callback
     def _schedule_reload(self, why: str) -> None:
