@@ -1,10 +1,11 @@
-# Updated: 2026-08-21 18:05
+# Updated: 2026-08-27 15:25
 """Shared base entity for Larnitech."""
 from __future__ import annotations
 
 import asyncio
 import logging
 
+from homeassistant.core import callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -108,6 +109,26 @@ class LarnitechEntity(CoordinatorEntity):
     @property
     def name(self) -> str:
         return self._with_addr(self.larnitech_name)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Write state only when this entity's own device is what changed.
+
+        `CoordinatorEntity` writes on EVERY coordinator update, and each push
+        event triggers one — so on a busy object every incoming event
+        re-rendered every entity on the entry, making the cost
+        `event rate x entity count` rather than `event rate`. Measured live
+        2026-08-27: ~2000 entities x 3522 updates in 7.5 minutes blocked the
+        event loop long enough to take the whole HA instance offline (it
+        needed a hard reset). Small objects never showed it.
+
+        An empty `updated_addrs` means a poll — a complete fresh snapshot, so
+        everything re-reads, which is also what keeps `available` correct when
+        a device drops out of the snapshot entirely."""
+        addrs = self.coordinator.updated_addrs
+        if addrs and self._addr not in addrs:
+            return
+        super()._handle_coordinator_update()
 
     @property
     def device(self) -> dict:

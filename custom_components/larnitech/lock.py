@@ -1,4 +1,4 @@
-# Updated: 2026-08-14 12:00
+# Updated: 2026-08-27 15:39
 """Larnitech lamp `lock` sub-type mapped to lock (state off = locked, confirmed live 2026-08-14)."""
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

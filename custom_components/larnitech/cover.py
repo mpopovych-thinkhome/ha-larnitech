@@ -1,4 +1,4 @@
-# Updated: 2026-08-20 15:05
+# Updated: 2026-08-27 15:39
 """Larnitech covers: blinds / jalousie / gate.
 
 Two different control models, confirmed live 2026-08-20:
@@ -69,7 +69,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

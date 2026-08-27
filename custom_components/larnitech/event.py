@@ -1,4 +1,4 @@
-# Updated: 2026-08-20 13:50
+# Updated: 2026-08-27 15:39
 """Larnitech physical buttons (`switch`) as event entities.
 
 A `switch` widget is a physical button input, NOT a relay. Status carries no
@@ -65,7 +65,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

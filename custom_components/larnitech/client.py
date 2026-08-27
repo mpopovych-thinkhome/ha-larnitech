@@ -1,4 +1,4 @@
-# Updated: 2026-08-14 13:00
+# Updated: 2026-08-27 15:25
 """Larnitech API2 WebSocket client: persistent connection, push + request/response."""
 from __future__ import annotations
 
@@ -23,6 +23,14 @@ _QUIRK_TO = '"status":{"_raw":{'
 # inside JSON strings — invalid JSON, breaks json.loads() for the whole
 # frame (and everything else batched into it) if left in.
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+# Reconnect backoff ceilings. A rejected API key gets its own, much longer
+# one: the controller is answering, it just refuses this key, so retrying
+# every 30s only generates noise. Retrying at all still makes sense — the
+# same rejection is what a controller with its API switched off returns, and
+# that comes back on its own once it is switched back on.
+_BACKOFF_MAX = 30
+_BACKOFF_MAX_AUTH = 300
 
 
 class LarnitechError(Exception):
@@ -58,6 +66,8 @@ class LarnitechClient:
         self._status_get_future: asyncio.Future | None = None
         self._on_event = None
         self._on_resync = None
+        self._on_auth_error = None
+        self._auth_failed = False
 
     @property
     def url(self) -> str:
@@ -72,6 +82,12 @@ class LarnitechClient:
     def set_resync_callback(self, callback) -> None:
         """Sync callback() fired on every (re)connect to pull a full snapshot."""
         self._on_resync = callback
+
+    def set_auth_error_callback(self, callback) -> None:
+        """Sync callback(rejected: bool) fired when the controller starts or
+        stops rejecting the API key, so the entry can raise/clear a repair
+        issue instead of leaving the reason buried in the log."""
+        self._on_auth_error = callback
 
     # --- lifecycle -------------------------------------------------------
 
@@ -100,16 +116,24 @@ class LarnitechClient:
     async def _run(self) -> None:
         backoff = 1
         while not self._closing:
+            auth_rejected = False
             try:
                 await self._open()
                 # status=detailed makes events arrive decoded (JSON), not hex.
                 await self._send({"request": "status-subscribe", "status": "detailed"})
                 self._connected.set()
                 backoff = 1
+                self._clear_auth_failure()
                 if self._on_resync is not None:
                     self._on_resync()  # pull a full fresh snapshot on (re)connect
                 async for raw in self._ws:
                     self._handle(raw)
+            except LarnitechAuthError as err:
+                # Must stay ABOVE the generic handler below: without its own
+                # branch this lands in `except Exception` and logs a full
+                # traceback on every single retry.
+                auth_rejected = True
+                self._note_auth_failure(err)
             except (OSError, websockets.WebSocketException, asyncio.TimeoutError) as err:
                 _LOGGER.debug("Larnitech connection lost: %s", err)
             except Exception:  # noqa: BLE001 - supervisor must never die silently
@@ -119,7 +143,41 @@ class LarnitechClient:
                 await self._safe_close()
             if not self._closing:
                 await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, 30)
+                cap = _BACKOFF_MAX_AUTH if auth_rejected else _BACKOFF_MAX
+                backoff = min(backoff * 2, cap)
+
+    def _note_auth_failure(self, err: Exception) -> None:
+        """Report a rejected key once, then stay quiet until it works again.
+
+        A rejection is not a transient blip, so the per-attempt ERROR +
+        traceback the generic handler produced said nothing new on retry 2
+        onwards and buried every other line in the log (64 of them in 7
+        minutes, observed live 2026-08-27 on object 2e87d1dc)."""
+        if self._auth_failed:
+            _LOGGER.debug("Larnitech %s: authorize still rejected", self._who)
+            return
+        self._auth_failed = True
+        _LOGGER.error(
+            "Larnitech %s: %s — check the API key, and that the API is "
+            "enabled on the controller. Retrying every %ss.",
+            self._who, err, _BACKOFF_MAX_AUTH,
+        )
+        if self._on_auth_error is not None:
+            self._on_auth_error(True)
+
+    def _clear_auth_failure(self) -> None:
+        if not self._auth_failed:
+            return
+        self._auth_failed = False
+        _LOGGER.info("Larnitech %s: authorization accepted again", self._who)
+        if self._on_auth_error is not None:
+            self._on_auth_error(False)
+
+    @property
+    def _who(self) -> str:
+        """Which controller a log line is about — an HA instance can hold
+        several entries, and 'Larnitech: rejected' alone doesn't say which."""
+        return self.serial or self._host or "local"
 
     async def _open(self) -> None:
         # The Larnitech cloud does not answer WebSocket pings, so client-side

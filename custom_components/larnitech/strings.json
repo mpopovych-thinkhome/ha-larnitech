@@ -99,6 +99,10 @@
     }
   },
   "issues": {
+    "auth_rejected": {
+      "title": "Larnitech ({title}): the API key was rejected",
+      "description": "The controller is reachable but refuses this API key. Check that the key still matches the one in LT_Setup, and that the API is switched on for this controller — a disabled API is rejected the same way a wrong key is. Home Assistant keeps retrying in the background, so this clears itself as soon as the controller accepts the key again."
+    },
     "mass_device_removal": {
       "title": "Larnitech ({title}): more than half of the known devices disappeared",
       "fix_flow": {

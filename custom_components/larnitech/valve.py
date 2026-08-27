@@ -1,4 +1,4 @@
-# Updated: 2026-08-17 18:00
+# Updated: 2026-08-27 15:39
 """Larnitech valve: `lamp` sub-types `valve-3` / `damper`, and the bare
 `valve` type (main shutoff valve). The bare type has DIFFERENT read and
 write vocabularies (confirmed live 2026-08-17 by probing the API directly,
@@ -44,7 +44,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

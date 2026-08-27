@@ -5,6 +5,75 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2-alpha] - 2026-08-27
+
+Follow-up to 0.9.1, found by measuring the same object once it would stay up
+long enough to measure. Same shape of bug, one layer down.
+
+### Fixed
+- **Every platform re-scanned the whole device map on every push event.**
+  Each platform registers a "has a new device appeared?" listener that walks
+  all of `coordinator.data`, so the cost was `platforms x devices` per event
+  — 12 x 1728 x ~40 events/s, roughly 830k iterations per second on the
+  Kaunas object, and the bulk of the ~50% CPU that remained after 0.9.1.
+  These scans now run on polls only. A push cannot introduce a device:
+  `apply_events` routes an unknown addr to a full refresh instead of
+  inventing an entry, and `async_refresh_addr` only touches an addr it
+  already holds — so on a push the scan could never find anything.
+  Registration moved from `coordinator.async_add_listener` to
+  `coordinator.add_discovery_listener`, which applies the guard in one place
+  rather than repeating it twelve times.
+
+### Note on the measurement
+The push rate looked like ~8 events/s before 0.9.1 and ~40/s after. The
+object did not get busier — the event loop had simply been too congested to
+keep up with its own queue, so the earlier figure was the backlog draining,
+not the real rate.
+
+## [0.9.1-alpha] - 2026-08-27
+
+Scaling and failure-reporting fixes, all three found by taking a large
+(~2000-entity) object down live. Nothing here changes what the integration
+exposes — only how much work it does and how it reports being unable to
+connect.
+
+### Fixed
+- **A push event re-rendered every entity on the entry, not just the device
+  that changed.** `CoordinatorEntity` writes state on every coordinator
+  update and each push triggers one, so the cost was `event rate x entity
+  count` instead of `event rate`. Measured live 2026-08-27: ~2000 entities
+  x 3522 coordinator updates in 7.5 minutes blocked the event loop long
+  enough that Home Assistant stopped answering its own API, the Supervisor
+  wedged mid-job, and the VM needed a hard reset. Entities now skip the
+  write when their own addr is not among the ones that changed
+  (`coordinator.updated_addrs`); a poll still refreshes everything, since it
+  carries a complete snapshot. Small objects never showed this — the same
+  code had been running on ~100-device objects for weeks.
+  - `updated_addrs` is deliberately separate from the existing
+    `event_addrs`: the latter means "arrived in a push event" and drives
+    momentary entities, so the post-write verify can mark an addr as changed
+    without re-firing a button that never moved.
+- **A rejected API key logged a full traceback on every retry, forever.**
+  `LarnitechAuthError` had no branch of its own in the reconnect loop, so it
+  fell through to the catch-all and was reported as an unexpected crash —
+  64 tracebacks in 7 minutes, burying every other line in the log. It is now
+  reported once at ERROR (no traceback; `authorize rejected: Unauthorized`
+  already says everything), then stays quiet until the key works again, and
+  backs off up to 300s instead of 30s — the controller is answering, it just
+  refuses this key, so retrying fast achieves nothing.
+  - Retrying at all is still right: the identical rejection is what a
+    controller with its API switched off returns, and that recovers on its
+    own. So this raises a repair issue (`auth_rejected`, not fixable from
+    HA, clears itself on the next successful connect) rather than
+    `ConfigEntryAuthFailed`, which would stop the entry and wait for a human
+    to walk a reauth flow it does not need.
+- **A failed initial connection leaked its reconnect loop.** `async_start`
+  timing out raised `ConfigEntryNotReady` without closing the client, but
+  the supervisor task was already running — and Home Assistant retries the
+  whole setup on that exception, so each retry stacked one more independent
+  reconnect loop onto the same controller. Visible live as several
+  concurrent auth-rejection loops on a single entry.
+
 ## [0.9.0-alpha] - 2026-08-27
 
 Backlog cleanup — every remaining item from the 2026-08-21 backlog is closed

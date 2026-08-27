@@ -1,4 +1,4 @@
-# Updated: 2026-08-21 19:10
+# Updated: 2026-08-27 15:39
 """Larnitech climate: valve-heating (+warm-floor), fancoil, climate-control, AC/conditioner.
 
 Read keys are confirmed from live stand payloads. Write commands (state / mode /
@@ -206,7 +206,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 

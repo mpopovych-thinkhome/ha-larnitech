@@ -1,4 +1,4 @@
-# Updated: 2026-08-18 16:30
+# Updated: 2026-08-27 15:39
 """Larnitech fan: `lamp/air-fan` only (on/off).
 
 Bare `vent` and `virtual` sub-type `ventilation` both moved to climate.py —
@@ -35,7 +35,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
         if new:
             async_add_entities(new)
 
-    entry.async_on_unload(coordinator.async_add_listener(_add_new))
+    entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
 
 
