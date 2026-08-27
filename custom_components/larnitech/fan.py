@@ -52,7 +52,7 @@ class LarnitechFan(LarnitechEntity, FanEntity):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     async def async_turn_on(self, percentage=None, preset_mode=None, **kwargs) -> None:
         await self.async_set_state(True)

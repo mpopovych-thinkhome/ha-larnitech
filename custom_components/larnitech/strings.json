@@ -9,11 +9,14 @@
           "host": "Host / IP (local)",
           "port": "Port (local)",
           "key": "API key (from LT_Setup)",
+          "entity_id_pattern": "Entity ID naming pattern",
           "auto_remove": "Auto-remove devices that disappear or change type",
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
           "update_areas": "Auto-update device room placement",
-          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead"
+          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead",
+          "name_suffix_addr": "Append the Larnitech address to entity names, e.g. \"Temperature (1:98)\"",
+          "scan_interval": "Poll interval — safety net against missed push events, and keepalive"
         }
       },
       "reconfigure": {
@@ -23,7 +26,8 @@
           "serial": "Serial number (cloud)",
           "host": "Host / IP (local)",
           "port": "Port (local)",
-          "key": "API key (from LT_Setup)"
+          "key": "API key (from LT_Setup)",
+          "entity_id_pattern": "Entity ID naming pattern — changing it renames every entity on this controller. HA does not update dashboards, automations or scripts that reference the old IDs"
         }
       }
     },
@@ -45,8 +49,20 @@
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
           "update_areas": "Auto-update device room placement",
-          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead"
+          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead",
+          "name_suffix_addr": "Append the Larnitech address to entity names, e.g. \"Temperature (1:98)\". Entities you renamed by hand keep your name",
+          "scan_interval": "Poll interval — safety net against missed push events, and keepalive"
         }
+      }
+    }
+  },
+  "selector": {
+    "entity_id_pattern": {
+      "options": {
+        "serial_id_subid": "Serial + address — sensor.eaffc8c1_110_42",
+        "larnitech_id_subid": "larnitech + address — sensor.larnitech_110_42",
+        "room_devicename": "Room + device name — sensor.kitchen_temperature",
+        "room_devicename_id_subid": "Room + device name + address — sensor.kitchen_temperature_110_42"
       }
     }
   },
@@ -77,6 +93,19 @@
           },
           "swing_horizontal_mode": {
             "name": "Horizontal swing"
+          }
+        }
+      }
+    }
+  },
+  "issues": {
+    "mass_device_removal": {
+      "title": "Larnitech ({title}): more than half of the known devices disappeared",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Remove the missing Larnitech devices?",
+            "description": "{missing} of {total} previously-known devices are absent from the last `get-devices` snapshot on \"{title}\" — far more than a single device dropping off. This is more often a controller/network hiccup, a misconfigured object, or the wrong server than a real mass removal. Confirm only if you're sure these devices are actually gone from Larnitech; otherwise leave this unconfirmed and check the connection first — the issue clears on its own once a normal snapshot comes back."
           }
         }
       }

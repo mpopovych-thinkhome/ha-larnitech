@@ -46,7 +46,7 @@ class LarnitechSwitch(LarnitechEntity, SwitchEntity):
         super().__init__(coordinator, addr)
         if self.device.get("sub-type") == "socket":
             self._attr_device_class = SwitchDeviceClass.OUTLET
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_on(self) -> bool:

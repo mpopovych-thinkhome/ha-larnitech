@@ -39,7 +39,7 @@ class LarnitechDehumidifier(LarnitechEntity, HumidifierEntity):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_on(self) -> bool:

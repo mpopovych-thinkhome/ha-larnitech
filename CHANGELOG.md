@@ -5,6 +5,113 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0-alpha] - 2026-08-27
+
+Backlog cleanup — every remaining item from the 2026-08-21 backlog is closed
+except distribution (HACS tag, still deferred to the real `0.9.0` release)
+and the hardware-blocked sensor types.
+
+### Added
+- **Hub device.** One synthetic device per config entry, named `Server
+  <serial>` — every widget device now links to it via `via_device` instead of
+  appearing as a flat, ownerless list. Registered before the platforms are
+  forwarded so `via_device` resolves on first setup, not just after a reload.
+- **`entity_id` naming pattern**, chosen from `serial_id_subid` (default,
+  unchanged), `larnitech_id_subid`, `room_devicename`,
+  `room_devicename_id_subid`. Offered at initial setup and — new — via
+  Reconfigure: changing it there renames every entity_id already on the
+  entry (`coordinator.apply_entity_id_pattern`) instead of only affecting
+  devices added afterwards. `unique_id` never changes, so history follows
+  the rename; HA does not update dashboards/automations/scripts referencing
+  the old entity_id, and the rename logs a summary saying so. Two devices
+  colliding under a name-based pattern skip the losing rename rather than
+  failing the whole batch.
+- **Configurable poll interval** (Options flow), 30-290s, default 120
+  unchanged.
+- **Diagnostics download** (`diagnostics.py`) — entry config (key redacted),
+  coordinator state, a type/sub-type census, the list of anything unmapped,
+  and the full raw `get-devices` snapshot; per-device diagnostics narrow the
+  same payload to one addr.
+- **Mass device removal guard.** If a snapshot is missing more than half of
+  the previously-known devices, `auto_remove` no longer acts on its own —
+  an HA repair issue is raised instead, and removal only happens once the
+  user confirms it. Confirmation acts on the missing set *as of the confirm
+  click*, not the set captured when the issue was first raised.
+- **Device type/sub-type change detection + full lifecycle logging.** A
+  device changing `type` (e.g. `lamp` → `valve`) or `sub-type` (e.g.
+  `lamp/socket` → `lamp/air-fan`) is now dropped and recreated on the right
+  platform instead of surviving under the wrong entity class. Every
+  device appearing, disappearing, or changing kind is logged at the
+  coordinator level (cause), paired with what the reconcile step did about
+  it (effect) — diagnosable without turning on debug logging.
+- **Naming overhaul:**
+  - Device display name: `"ID:SUBID name"` (was `"name, ID:SUBID"` via the
+    old `model` field) — the addr now identifies the widget everywhere a
+    device is listed (search, the hub's "Connected devices" panel), not
+    only on the integration's own page.
+  - Entity default name is now the widget's kind (type, or sub-type when
+    Larnitech reports one) instead of repeating the Larnitech device name —
+    identity lives on the device name, the entity name says what it
+    represents.
+  - New opt-in `name_suffix_addr` option: appends `(<addr>)` to entity
+    default names. Toggleable at any time; never overwrites a manual
+    entity rename, since it only affects the *default* name.
+  - Integration page device card: `model` now reads `"type (sub-type)"`
+    (or plain `"type"`) instead of the addr — the addr lives in the name
+    instead. `sw_version` persists the sub-type the same way `model`
+    persists the type, so a sub-type change is still caught after a
+    restart, not only live.
+  - `resync_names` button moved onto the hub device, default name
+    simplified to "Resync names" (was `"Larnitech <serial> resync
+    names"`).
+- **Translations** for the full UI (config/options/reconfigure forms,
+  `entity_id_pattern` selector, mass-removal repair issue) in `en`, `uk`
+  (was listed as `ua`), `ru`, `lt`.
+- `valve-heating`: `HEAT` removed from `hvac_modes` — the widget's own
+  automation decides heat vs. cool, `hvac_mode` no longer offers a choice
+  that isn't really there to make.
+- `valve-heating` `hvac_action` reworked: `heating` while a named preset is
+  assigned and the channel is on (the widget's own automation is driving
+  toward its setpoint — that's heating by definition), `None` when the
+  channel is on but no preset is assigned (something else, e.g.
+  `climate-control`, switched the channel directly — direction unknown to
+  this widget). This is the reverse of the first pass shipped this session;
+  corrected after live testing showed the mapping was backwards.
+- `valve-heating` target-temperature visibility now follows the *preset
+  type* (hidden for Manual/Always-off, shown for any named preset),
+  independent of the current `hvac_mode` on/off state — a first pass keyed
+  this off `hvac_mode == OFF`, which hid the setpoint on the wrong states.
+- Three write paths shipped provisionally in 0.6.0 are now **confirmed live**
+  (2026-08-27) — no code changes, all three worked as written:
+  `"Always-off"` preset on `valve-heating`/`fancoil`/`vent`, fan speed on
+  `fancoil`, and louvre position (vertical + horizontal swing) on
+  `AC`/`conditioner`.
+- `README.md` rewritten: widget-type mapping tables written from the user's
+  point of view (what each Larnitech widget becomes in HA and what you can
+  do with it), explicit lists of what is not implemented and what is not yet
+  verified on live hardware, initial-vs-runtime settings reference,
+  requirements/installation, diagnostics/logging, contact info. `LICENSE`
+  added (MIT) — the repo had none before.
+
+### Fixed
+- **Mass-removal guard could be bypassed by waiting.** The missing-device
+  ratio was recomputed each poll against the registry as it shrank — so
+  confirming the first >50% batch left the remainder a minority of what
+  was left, which the normal per-device path then silently deleted with no
+  further prompt. Seen live: 93 devices removed on confirmation, then 20
+  more gone 90s later with no warning. The guard now latches once tripped
+  and only clears on full recovery or explicit confirmation, instead of
+  re-testing the ratio every cycle.
+- `model` field format migration (`"type, addr"` → `"type"`/`"type
+  (sub-type)"`) guarded against mass-recreating every device on the first
+  reconcile after the upgrade: the parser reads both formats during the
+  transition instead of only the new one.
+- Sub-type-change detection guarded the same way: a device's `sw_version`
+  was never set before this feature existed, so comparing against "unset"
+  would have read as "sub-type changed" for the entire existing fleet on
+  first reconcile. The comparison only fires once a prior value has
+  actually been recorded.
+
 ## [0.8.0-alpha] - 2026-08-21
 
 Phase 3 complete — every Larnitech widget type is now either implemented or

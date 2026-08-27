@@ -163,7 +163,7 @@ class LarnitechSensor(LarnitechEntity, SensorEntity):
         self._attr_native_unit_of_measurement = unit
         if display_precision is not None:
             self._attr_suggested_display_precision = display_precision
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def native_value(self):
@@ -198,11 +198,11 @@ class LarnitechPidSensor(LarnitechEntity, SensorEntity):
         super().__init__(coordinator, addr)
         self._status_key = status_key
         self._attr_unique_id = f"{self._slug}_pid"
-        self.entity_id = ENTITY_ID_FORMAT.format(self._attr_unique_id)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid("pid"))
 
     @property
     def name(self) -> str:
-        return f"{super().name} PID demand"
+        return self._with_addr(f"{self.larnitech_name} PID demand")
 
     @property
     def native_value(self):
@@ -235,7 +235,7 @@ class LarnitechVirtualSensor(LarnitechEntity, SensorEntity):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def _is_numeric(self) -> bool:
@@ -303,7 +303,7 @@ class LarnitechJsonFieldSensor(LarnitechEntity, SensorEntity):
         super().__init__(coordinator, addr)
         self._field_key = field_key
         self._attr_unique_id = f"{self._slug}_{field_key}"
-        self.entity_id = ENTITY_ID_FORMAT.format(self._attr_unique_id)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid(field_key))
         self._descr_cache: dict = {}
         self._cache_descr()
 
@@ -346,7 +346,7 @@ class LarnitechJsonFieldSensor(LarnitechEntity, SensorEntity):
     def name(self) -> str:
         func = self._descr.get("func")
         suffix = f"{self._typ} ({func})" if func else self._typ
-        return f"{super().name} {suffix}"
+        return self._with_addr(f"{self.larnitech_name} {suffix}")
 
     @property
     def icon(self) -> str | None:

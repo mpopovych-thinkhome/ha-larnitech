@@ -20,46 +20,17 @@ the stand (implemented, dispatch verified, "on" state never observed live):
 
 - [ ] `current-sensor`, `motion-sensor`, `leak-sensor`, `door-sensor` (no sub-type)
 
-## Safety
-
-- [ ] Guard against mass device removal: if a `get-devices` snapshot is missing
-  more than half of the previously-known devices (vs. flat-out empty, already
-  handled — see spec's "Жизненный цикл (reconcile)"), the coordinator must NOT
-  silently auto-remove them via the normal `auto_remove` / 2-missed-snapshots
-  path. Instead, raise an HA repair issue (`issue_registry`) with a confirm
-  action, e.g. "На Larnitech объекте пропало больше половины устройств, вы
-  хотите удалить их из HA?" — actual removal only happens if the user
-  confirms. Rationale: a >50% drop is far more likely a controller/network
-  hiccup (bad `get-devices` reply, object misconfigured, wrong server) than a
-  real mass-deletion on the Larnitech side, and the existing 2-consecutive-
-  snapshot debounce doesn't protect against a hiccup that persists across
-  both polls.
-
 ## Distribution
 
-- [ ] HACS support (decide repo layout / `hacs.json`) — note: HACS doesn't yet read the local `brand/` folder (open HACS bug), so it'll show "icon not available" until either HACS adds support or the `home-assistant/brands` PR (#11017) merges
+- [ ] HACS support — `hacs.json` is already in place and the repo is public, but there's no git tag yet, and HACS needs a release to install/update a custom repository from. **Deferred to the `0.9.0` release** — cut the first tag then. `home-assistant/brands` PR #11017 was closed by maintainers 2026-08-21: the brands repo no longer accepts custom-integration icons since HA 2026.3.0 — local `brand/` is now the only path, and it already works (HA reads it directly, independent of HACS — no HACS-side blocker here).
 
 ## Ideas / nice-to-have
 
 - [ ] `vent` CO2 setpoint `number` entity range/step (400-2000 ppm, step 50) — not documented anywhere, a guess pending live confirmation
-- [ ] `valve-heating`/`fancoil`/`vent` `"Always-off"` preset write (raw `"always-off"` string) — still untested against a live device. The `"Manual"` (empty-value) side is confirmed live 2026-08-18.
-- [ ] `fancoil` `fan_mode` write — untested against a live device (`hvac_mode` write confirmed live 2026-08-18)
-- [ ] `AC`/`conditioner` fan-speed bits 4-6 (4th/5th speed, silent mode) — the wire vocabulary only covers `auto`/`low`/`middle`/`high`, so these can't be written (probed live 2026-08-17: every candidate value for the missing speeds — numbers, `"5"`, `"speed5"` — rejected by `status-set` with `code 9`). **Bug (Larnitech-side):** reading is broken too — `status.fan` comes back as raw JSON `null` whenever the physical unit is actually running above the 3rd speed, instead of some undecoded value we could add to the dictionary. Revisit if Larnitech ever exposes a real value for these.
-- [ ] **Bug (Larnitech-side):** the `fans`/`funs` capability-mask attribute never reaches the API at all — confirmed twice live on `1:101` (`fans="0x47"` and later `fans="0x77"`, neither ever appeared in `get-devices`/`status-get`). We always fall back to the vendor default (`0x1F` AC / `0x0F` conditioner) — there is currently no way to learn a device's real fan-speed mask through the API. Revisit if Larnitech ever starts sending it.
-- [ ] **Bug (Larnitech-side):** `conditioner`'s `modes` device-level key arrives, but with the wrong value — configured `modes="0x1A"` in XML, API reported back `"0x1F"` (everything) regardless (confirmed live 2026-08-17). `AC`'s `modes` is unaffected (confirmed correct on `1:101`). Currently bypassed client-side — `LarnitechConditioner` never reads the live `modes`/`funs` keys, always shows the full default set. Snap back to reading them live if Larnitech fixes this server-side (see `_LarnitechACBase`/`LarnitechConditioner` in `climate.py`).
-- [ ] `AC`/`conditioner` `swing_mode`/`swing_horizontal_mode` writes (vane index) — untested against a live device
-- [ ] `valve-heating` cool-side `hvac_action` — heat-only for now (see climate.py `LarnitechValveHeating.hvac_action`); extend once there's a way to detect a dual heat/cool valve-heating widget's active side
+- [ ] `valve-heating` cool-side detection — currently `hvac_action` only ever reports `heating`/`None` (own automation vs. externally-driven), never `cooling`, because the widget itself has no way to know it's plumbed as a cooling channel; extend once there's a way to detect a dual heat/cool valve-heating widget's active side
 - [ ] `AC`/`conditioner` `hvac_action` (mirrors `mode`, climate.py `_LarnitechACBase.hvac_action`) — not live-tested, no AC/conditioner device found on any accessible object this session
-- [ ] Hub device per controller — group entities under one `Larnitech <serial>` device
-- [ ] Options flow: setting for the `entity_id` naming pattern, choice of:
-  - `serial_id_subid` (current default)
-  - `larnitech_id_subid`
-  - `room_devicename`
-  - `room_devicename_id_subid`
-- [ ] Обновить файл README.md чтобы в нем была указано таблица мапингов типов с коментариями нюансов по каждому
-- [ ] Configurable poll interval in the options flow
-- [ ] Download diagnostics (entry + raw get-devices snapshot)
-- [ ] UI translations in the client language (uk / ru / lt)
-- [ ] Map `current-sensor` / power to the Energy dashboard
-- [ ] Local (LAN) discovery via mDNS / zeroconf
-- [ ] Suffix entity/device names with the Larnitech address, e.g. `Temperature (1:98)` — helps map HA entities back to the controller UI
+- [ ] **Low priority, deferred 2026-08-21** — Local (LAN) discovery via mDNS / zeroconf. No Larnitech controller is reachable on any LAN we develop from (the accessible objects are all cloud-connected), so the service type it advertises cannot be probed and the discovery cannot be tested. The API2 wiki only documents the hostname `de-mg.local`, which is a plain A-record — HA's zeroconf browses DNS-SD service types, not hostnames, so a hostname alone is not enough to write the `manifest.json` entry. Revisit only if a controller ends up on a LAN we can reach.
+
+## Open investigations
+
+- [ ] **Sensors reading 0 on the Stage stand (CO2, then virtual temperature sensors)** — found 2026-08-27. Confirmed twice, directly against Larnitech (bypassing HA, via the dedicated MCP tool) that the controller itself reports `0` for the affected addrs (`1:219` CO2, `1:171`/`1:172` virtual temp) — not a coordinator merge/replace bug on our side, and unrelated to the climate addrs being written during testing (different, unconnected addrs). Onset coincides with a window of rapid HA core restarts and live write testing on that same stand. Leading suspicion: stand degradation under heavy testing load, not an integration bug — not confirmed as root cause. Revisit if it recurs outside a heavy-testing window, or affects a client object.

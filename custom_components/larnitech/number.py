@@ -53,11 +53,11 @@ class LarnitechVentCo2Setpoint(LarnitechEntity, NumberEntity):
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
         self._attr_unique_id = f"{self._slug}_co2_setpoint"
-        self.entity_id = ENTITY_ID_FORMAT.format(self._attr_unique_id)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid("co2_setpoint"))
 
     @property
     def name(self) -> str:
-        return f"{super().name} CO2 setpoint"
+        return self._with_addr(f"{self.larnitech_name} CO2 setpoint")
 
     @property
     def available(self) -> bool:

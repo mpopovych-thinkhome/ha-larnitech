@@ -33,7 +33,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 class LarnitechLock(LarnitechEntity, LockEntity):
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_locked(self) -> bool:

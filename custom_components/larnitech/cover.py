@@ -86,7 +86,7 @@ class LarnitechCover(LarnitechEntity, CoverEntity):
         if has_position:
             features |= CoverEntityFeature.SET_POSITION
         self._attr_supported_features = features
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def current_cover_position(self) -> int | None:

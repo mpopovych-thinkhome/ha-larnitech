@@ -63,7 +63,7 @@ class LarnitechLamp(LarnitechEntity, LightEntity):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_on(self) -> bool:
@@ -82,7 +82,7 @@ class LarnitechDimmer(LarnitechEntity, LightEntity):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_on(self) -> bool:
@@ -119,7 +119,7 @@ class LarnitechRgb(LarnitechEntity, LightEntity):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_on(self) -> bool:

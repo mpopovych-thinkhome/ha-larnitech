@@ -1,4 +1,4 @@
-# Updated: 2026-08-18 16:28
+# Updated: 2026-08-21 19:10
 """Larnitech climate: valve-heating (+warm-floor), fancoil, climate-control, AC/conditioner.
 
 Read keys are confirmed from live stand payloads. Write commands (state / mode /
@@ -248,17 +248,33 @@ class LarnitechValveHeating(_ManualAlwaysOffPresets, LarnitechClimateBase):
     # Keys the icons.json lookup for the Manual / Always-off preset icons
     # (icon translations are keyed by translation_key, not by domain).
     _attr_translation_key = "valve_heating"
-    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
+    # No HEAT: the widget is a bare on/off actuator with no direction of its
+    # own — even in Manual, nothing in the API says "heat" beyond the type
+    # name. HEAT_COOL is the honest label for "on", both here and (per
+    # `hvac_mode`) when a named preset means something else entirely (e.g.
+    # climate-control) is driving it through its own automation.
+    _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT_COOL]
+
+    _BASE_FEATURES = (
+        ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
+        | ClimateEntityFeature.PRESET_MODE
+    )
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
-        self._attr_supported_features = (
-            ClimateEntityFeature.TARGET_TEMPERATURE
-            | ClimateEntityFeature.TURN_ON
-            | ClimateEntityFeature.TURN_OFF
-            | ClimateEntityFeature.PRESET_MODE
-        )
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
+
+    @property
+    def supported_features(self) -> ClimateEntityFeature:
+        # `target` is only meaningful under a named preset — that's the
+        # setpoint its automation actually regulates toward. In Manual /
+        # Always-off there IS no automation reading `target`; the widget is
+        # a plain on/off switch regardless of what `target` last held, on or
+        # off doesn't change that — so gate on the preset, not hvac_mode.
+        if self._custom_preset_active:
+            return self._BASE_FEATURES | ClimateEntityFeature.TARGET_TEMPERATURE
+        return self._BASE_FEATURES
 
     @property
     def _custom_preset_active(self) -> bool:
@@ -271,18 +287,26 @@ class LarnitechValveHeating(_ManualAlwaysOffPresets, LarnitechClimateBase):
         # With a named preset assigned, hvac_mode reflects that assignment,
         # not the moment-to-moment on/off of the heating channel — the
         # channel instead drives `hvac_action` below. Without one (Manual /
-        # Always-off), hvac_mode is the on/off channel itself, same as before.
+        # Always-off), hvac_mode is the on/off channel itself. Either way:
+        # HEAT_COOL, never HEAT — see `_attr_hvac_modes`.
         if self._custom_preset_active:
-            return HVACMode.HEAT
-        return HVACMode.HEAT if self.is_state_on else HVACMode.OFF
+            return HVACMode.HEAT_COOL
+        return HVACMode.HEAT_COOL if self.is_state_on else HVACMode.OFF
 
     @property
     def hvac_action(self) -> HVACAction | None:
-        # Cool-side detection for dual heat/cool valve-heating widgets is
-        # TBD — heat-only for now.
+        # A named preset is the valve's OWN automation, regulating toward its
+        # own `target` — that IS heating, by definition of what the preset
+        # system does. Manual means the on/off channel was written directly,
+        # with no automation on THIS widget involved — most likely something
+        # else (e.g. climate-control) using the valve as its own actuator,
+        # which is just as often for the cool side of a zone as the hot one
+        # (see class docstring). None is HA's convention for "action not
+        # known" — the honest label when the purpose behind "on" isn't this
+        # widget's to know.
         if self._custom_preset_active:
             return HVACAction.HEATING if self.is_state_on else HVACAction.IDLE
-        return HVACAction.HEATING if self.is_state_on else HVACAction.OFF
+        return None if self.is_state_on else HVACAction.OFF
 
     @property
     def target_temperature(self) -> float | None:
@@ -300,8 +324,8 @@ class LarnitechValveHeating(_ManualAlwaysOffPresets, LarnitechClimateBase):
             return
         # Turning off while a named preset is active must also drop the
         # preset back to Manual — otherwise `hvac_mode` above stays locked to
-        # HEAT (custom preset overrides the on/off channel), so an "Off" from
-        # HA would silently do nothing visible in the UI.
+        # HEAT_COOL (custom preset overrides the on/off channel), so an "Off"
+        # from HA would silently do nothing visible in the UI.
         #
         # Two spaced-out writes, automation first — see `_PRESET_RESET_SETTLE`.
         if self._custom_preset_active:
@@ -325,7 +349,7 @@ class LarnitechFancoil(_ManualAlwaysOffPresets, LarnitechClimateBase):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
         self._attr_supported_features = (
             ClimateEntityFeature.TARGET_TEMPERATURE
             | ClimateEntityFeature.FAN_MODE
@@ -429,7 +453,7 @@ class LarnitechClimateControl(LarnitechClimateBase):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def _has_heat(self) -> bool:
@@ -537,7 +561,7 @@ class _LarnitechACBase(LarnitechClimateBase):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     def _mask(self, key: str) -> int:
         """Capability bitmask for `key`, falling back to the vendor default.
@@ -766,7 +790,7 @@ class LarnitechVentilation(LarnitechClimateBase):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def supported_features(self) -> ClimateEntityFeature:
@@ -856,7 +880,7 @@ class LarnitechVent(LarnitechClimateBase):
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
         self._attr_supported_features = (
             ClimateEntityFeature.FAN_MODE
             | ClimateEntityFeature.PRESET_MODE

@@ -92,7 +92,7 @@ class LarnitechBinarySensor(LarnitechEntity, BinarySensorEntity):
     def __init__(self, coordinator, addr, device_class):
         super().__init__(coordinator, addr)
         self._attr_device_class = device_class
-        self.entity_id = ENTITY_ID_FORMAT.format(self._slug)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
     def is_on(self) -> bool | None:
@@ -128,11 +128,11 @@ class LarnitechMalfunctionSensor(LarnitechEntity, BinarySensorEntity):
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
         self._attr_unique_id = f"{self._slug}_malfunction"
-        self.entity_id = ENTITY_ID_FORMAT.format(self._attr_unique_id)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid("malfunction"))
 
     @property
     def name(self) -> str:
-        return f"{super().name} Malfunction"
+        return self._with_addr(f"{self.larnitech_name} Malfunction")
 
     @property
     def is_on(self) -> bool | None:

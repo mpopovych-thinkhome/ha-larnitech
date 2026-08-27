@@ -1,11 +1,18 @@
-# Updated: 2026-08-21 10:38
+# Updated: 2026-08-21 17:30
 """Constants for the Larnitech integration."""
+
+from homeassistant.util import slugify
 
 DOMAIN = "larnitech"
 
 # Remove an HA device only after it is absent from this many full snapshots
 # in a row (guards against partial / corrupted get-devices replies).
 MISSING_SNAPSHOTS_BEFORE_REMOVE = 2
+
+# Above this fraction of previously-known devices missing from one snapshot,
+# the coordinator stops trusting the normal auto-remove debounce (a hiccup
+# can persist across it too) and raises a repair issue instead.
+MASS_REMOVAL_RATIO = 0.5
 
 CONN_LOCAL = "local"
 CONN_CLOUD = "cloud"
@@ -23,24 +30,76 @@ CONF_UPDATE_NAMES = "update_names"
 CONF_USE_AREAS = "use_areas"
 CONF_UPDATE_AREAS = "update_areas"
 CONF_READ_ONLY = "read_only"
+CONF_NAME_SUFFIX_ADDR = "name_suffix_addr"
 
 OPTIONS_KEYS = (
-    CONF_AUTO_REMOVE, CONF_UPDATE_NAMES, CONF_USE_AREAS, CONF_UPDATE_AREAS, CONF_READ_ONLY,
+    CONF_AUTO_REMOVE, CONF_UPDATE_NAMES, CONF_USE_AREAS, CONF_UPDATE_AREAS,
+    CONF_READ_ONLY, CONF_NAME_SUFFIX_ADDR,
 )
 
-# All toggles default ON, except `read_only` — opt-in, changes write behavior.
+# All toggles default ON, except `read_only` and `name_suffix_addr` — opt-in,
+# they change write behavior / naming.
 TOGGLE_DEFAULTS = {
     CONF_AUTO_REMOVE: True,
     CONF_UPDATE_NAMES: True,
     CONF_USE_AREAS: True,
     CONF_UPDATE_AREAS: True,
     CONF_READ_ONLY: False,
+    CONF_NAME_SUFFIX_ADDR: False,
 }
 
 DEFAULT_LOCAL_PORT = 2041
 # Push (decoded events) carries real-time updates; this poll is a safety net
 # against missed events and doubles as keepalive / dead-connection detection.
+CONF_SCAN_INTERVAL = "scan_interval"
 DEFAULT_SCAN_INTERVAL = 120
+# Below 30s the poll competes with the push channel for no benefit; the upper
+# bound stays under the controller's own ~300s idle timeout so the poll still
+# doubles as keepalive.
+MIN_SCAN_INTERVAL = 30
+MAX_SCAN_INTERVAL = 290
+
+
+# --- entity_id naming ---------------------------------------------------
+#
+# Lives in entry.data, set in the initial flow and changeable via Reconfigure
+# — never in the Options flow. Changing it renames every entity_id on the
+# entry, which HA does NOT propagate to dashboards, automations or scripts;
+# that belongs behind the deliberate Reconfigure step, not a settings toggle.
+CONF_ENTITY_ID_PATTERN = "entity_id_pattern"
+
+PATTERN_SERIAL_ID_SUBID = "serial_id_subid"
+PATTERN_LARNITECH_ID_SUBID = "larnitech_id_subid"
+PATTERN_ROOM_NAME = "room_devicename"
+PATTERN_ROOM_NAME_ID_SUBID = "room_devicename_id_subid"
+
+ENTITY_ID_PATTERNS = [
+    PATTERN_SERIAL_ID_SUBID,
+    PATTERN_LARNITECH_ID_SUBID,
+    PATTERN_ROOM_NAME,
+    PATTERN_ROOM_NAME_ID_SUBID,
+]
+DEFAULT_ENTITY_ID_PATTERN = PATTERN_SERIAL_ID_SUBID
+
+
+def entity_object_id(pattern: str, serial, addr: str, device: dict) -> str:
+    """object_id part of an entity_id, per the entry's chosen pattern.
+
+    Only the entity_id is affected — `unique_id` always stays `device_slug`,
+    so switching patterns between objects never collides in the registry.
+    The name-based patterns can collide between two devices sharing a room
+    and a name; HA resolves that by appending `_2`, which is why the
+    addr-bearing variants exist."""
+    dev_id, sub_id = addr.split(":")
+    tail = f"{dev_id}_{sub_id}"
+    if pattern == PATTERN_LARNITECH_ID_SUBID:
+        return f"{DOMAIN}_{tail}"
+    if pattern in (PATTERN_ROOM_NAME, PATTERN_ROOM_NAME_ID_SUBID):
+        base = slugify(f"{device.get('area') or ''} {device.get('name') or ''}")
+        if not base:
+            return f"{serial or 'local'}_{tail}"
+        return base if pattern == PATTERN_ROOM_NAME else f"{base}_{tail}"
+    return f"{serial or 'local'}_{tail}"
 
 PLATFORMS = [
     "sensor",
@@ -166,6 +225,28 @@ def device_slug(serial, addr: str) -> str:
     """Stable id for a device: <serial>_<ID>_<SUBID> from addr `ID:SUBID`."""
     dev_id, sub_id = addr.split(":")
     return f"{serial or 'local'}_{dev_id}_{sub_id}"
+
+
+def device_display_name(dev: dict, fallback: str | None = None) -> str | None:
+    """"ID:SUBID name" — the addr identifies the widget on the controller,
+    the name is what Larnitech calls it.
+
+    The addr also rides in `model`, but HA renders `model` only in the
+    integration's own device list — the hub device's "Connected devices"
+    panel and the global device search show the NAME and nothing else, so
+    the addr has to be part of the name to be visible there at all."""
+    addr = dev.get("addr")
+    name = dev.get("name") or fallback
+    if not name:
+        return addr
+    return f"{addr} {name}" if addr else name
+
+
+def hub_slug(serial) -> str:
+    """Identifier of the controller's own device. Every widget device links to
+    it via `via_device`, so HA shows one Larnitech controller with everything
+    connected through it instead of a flat list with no owner."""
+    return f"{serial or 'local'}_hub"
 
 
 def toggle(entry, key: str) -> bool:

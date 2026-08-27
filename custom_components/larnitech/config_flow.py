@@ -1,4 +1,4 @@
-# Updated: 2026-06-24 15:55
+# Updated: 2026-08-21 17:05
 """Config, options and reconfigure flows for Larnitech."""
 from __future__ import annotations
 
@@ -6,23 +6,38 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 from homeassistant.util.ssl import client_context
 
 from .client import LarnitechAuthError, LarnitechClient, LarnitechError
 from .const import (
     CONF_AUTO_REMOVE,
     CONF_CONNECTION_TYPE,
+    CONF_ENTITY_ID_PATTERN,
     CONF_IP,
     CONF_KEY,
     CONF_PORT,
+    CONF_SCAN_INTERVAL,
     CONF_SERIAL,
     CONF_UPDATE_AREAS,
     CONF_UPDATE_NAMES,
     CONF_USE_AREAS,
     CONN_CLOUD,
     CONN_LOCAL,
+    DEFAULT_ENTITY_ID_PATTERN,
     DEFAULT_LOCAL_PORT,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    ENTITY_ID_PATTERNS,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
     OPTIONS_KEYS,
     TOGGLE_DEFAULTS,
 )
@@ -39,10 +54,39 @@ def _data_schema(d: dict) -> dict:
     }
 
 
-def _options_schema(d: dict) -> dict:
+def _pattern_schema(d: dict) -> dict:
+    """Offered in the initial setup and in Reconfigure — see const.py for why
+    it is not in the Options flow."""
     return {
+        vol.Required(
+            CONF_ENTITY_ID_PATTERN,
+            default=d.get(CONF_ENTITY_ID_PATTERN, DEFAULT_ENTITY_ID_PATTERN),
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=ENTITY_ID_PATTERNS,
+                translation_key="entity_id_pattern",
+                mode=SelectSelectorMode.DROPDOWN,
+            )
+        )
+    }
+
+
+def _options_schema(d: dict) -> dict:
+    schema = {
         vol.Required(k, default=d.get(k, TOGGLE_DEFAULTS[k])): bool for k in OPTIONS_KEYS
     }
+    schema[
+        vol.Required(CONF_SCAN_INTERVAL, default=d.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+    ] = NumberSelector(
+        NumberSelectorConfig(
+            min=MIN_SCAN_INTERVAL,
+            max=MAX_SCAN_INTERVAL,
+            step=1,
+            unit_of_measurement="s",
+            mode=NumberSelectorMode.BOX,
+        )
+    )
+    return schema
 
 
 async def _test_connection(hass, data: dict) -> str | None:
@@ -73,6 +117,16 @@ def _uid(data: dict) -> str:
     return data.get(CONF_SERIAL, "larni")
 
 
+def _split_options(user_input: dict) -> dict:
+    """Move the option keys out of the submitted form into entry.options,
+    leaving connection config (and the frozen entity_id pattern) in
+    entry.data. NumberSelector hands back a float — the coordinator feeds it
+    to `timedelta`, so normalise it to int here rather than at every read."""
+    options = {k: user_input.pop(k) for k in OPTIONS_KEYS}
+    options[CONF_SCAN_INTERVAL] = int(user_input.pop(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+    return options
+
+
 class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
@@ -86,11 +140,11 @@ class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             else:
                 await self.async_set_unique_id(_uid(user_input))
                 self._abort_if_unique_id_configured()
-                options = {k: user_input.pop(k) for k in OPTIONS_KEYS}
+                options = _split_options(user_input)
                 return self.async_create_entry(title=f"Larnitech {_uid(user_input)}", data=user_input, options=options)
 
         d = user_input or {}
-        schema = vol.Schema({**_data_schema(d), **_options_schema(d)})
+        schema = vol.Schema({**_data_schema(d), **_pattern_schema(d), **_options_schema(d)})
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
 
     # Change connection config
@@ -102,10 +156,19 @@ class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if error:
                 errors["base"] = error
             else:
+                self._apply_pattern_change(entry, user_input.get(CONF_ENTITY_ID_PATTERN))
                 return self.async_update_reload_and_abort(entry, data_updates=user_input)
 
-        schema = vol.Schema(_data_schema(entry.data))
+        schema = vol.Schema({**_data_schema(entry.data), **_pattern_schema(entry.data)})
         return self.async_show_form(step_id="reconfigure", data_schema=schema, errors=errors)
+
+    def _apply_pattern_change(self, entry, pattern: str | None) -> None:
+        """Rename existing entity_ids before the reload — the coordinator is
+        still alive here and holds the snapshot the new ids are built from."""
+        coordinator = self.hass.data.get(DOMAIN, {}).get(entry.entry_id)
+        if coordinator is None or not pattern or pattern == coordinator.entity_id_pattern:
+            return
+        coordinator.apply_entity_id_pattern(pattern)
 
     @staticmethod
     @callback
@@ -116,6 +179,9 @@ class LarnitechConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class LarnitechOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         if user_input is not None:
+            user_input[CONF_SCAN_INTERVAL] = int(
+                user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            )
             return self.async_create_entry(title="", data=user_input)
         current = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
