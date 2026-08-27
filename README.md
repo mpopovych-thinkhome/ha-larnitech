@@ -20,8 +20,7 @@ the Larnitech widget catalog.
    "Integration"
 2. Install "Larnitech", restart Home Assistant
 
-No tagged release yet (see [TODO.md](TODO.md) → Distribution) — HACS
-installs from `main` until the first tag is cut.
+Still an alpha release — expect rough edges.
 
 ### Manual
 
