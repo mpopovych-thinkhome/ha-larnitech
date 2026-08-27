@@ -1,7 +1,7 @@
 {
   "domain": "larnitech",
   "name": "Larnitech",
-  "codeowners": ["@thinkhome"],
+  "codeowners": ["@mpopovych-thinkhome"],
   "config_flow": true,
   "documentation": "https://wiki.larnitech.com/API2",
   "iot_class": "local_push",
