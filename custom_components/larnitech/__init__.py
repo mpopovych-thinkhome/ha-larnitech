@@ -1,16 +1,17 @@
-# Updated: 2026-06-24 15:55
+# Updated: 2026-08-21 17:15
 """The Larnitech integration."""
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import device_registry as dr
 from homeassistant.util.ssl import client_context
 
 from .client import LarnitechClient, LarnitechError
 from .const import (
     CONF_CONNECTION_TYPE,
-    CONF_HOST,
+    CONF_IP,
     CONF_KEY,
     CONF_PORT,
     CONF_SERIAL,
@@ -18,6 +19,7 @@ from .const import (
     DEFAULT_LOCAL_PORT,
     DOMAIN,
     PLATFORMS,
+    hub_slug,
 )
 from .coordinator import LarnitechCoordinator
 
@@ -32,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         connection_type=entry.data[CONF_CONNECTION_TYPE],
         key=entry.data[CONF_KEY],
         serial=entry.data.get(CONF_SERIAL),
-        host=entry.data.get(CONF_HOST),
+        host=entry.data.get(CONF_IP),
         port=entry.data.get(CONF_PORT, DEFAULT_LOCAL_PORT),
         ssl_context=ssl_context,
     )
@@ -52,9 +54,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await coordinator.async_config_entry_first_refresh()
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    _register_hub(hass, entry, client)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # From here on, a new entity means a device appeared at runtime — see the
+    # log level chosen in `LarnitechEntity.__init__`.
+    coordinator.setup_complete = True
     entry.async_on_unload(entry.add_update_listener(_reload_on_update))
     return True
+
+
+def _register_hub(hass: HomeAssistant, entry: ConfigEntry, client: LarnitechClient) -> None:
+    """The controller's own device — parent of every widget device via
+    `via_device`. Registered up front, before the platforms add anything:
+    HA drops the `via_device` link silently if the parent doesn't exist yet.
+    It also gives the `resync names` button a home and is the only place the
+    connection details are visible in the UI."""
+    dr.async_get(hass).async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, hub_slug(client.serial))},
+        manufacturer="Larnitech",
+        name=f"Server {client.serial or 'local'}",
+        model=f"server, {entry.data[CONF_CONNECTION_TYPE]}",
+    )
 
 
 async def _reload_on_update(hass: HomeAssistant, entry: ConfigEntry) -> None:

@@ -1,0 +1,169 @@
+{
+  "entity": {
+    "climate": {
+      "ventilation": {
+        "state_attributes": {
+          "fan_mode": {
+            "default": "mdi:fan",
+            "state": {
+              "auto": "mdi:fan-auto",
+              "low": "mdi:fan-speed-1",
+              "middle": "mdi:fan-speed-2",
+              "high": "mdi:fan-speed-3"
+            }
+          }
+        }
+      },
+      "vent": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:tune-variant",
+            "state": {
+              "Manual": "mdi:hand-back-right",
+              "Always-off": "mdi:cancel"
+            }
+          },
+          "fan_mode": {
+            "default": "mdi:fan",
+            "state": {
+              "0%": "mdi:fan-off",
+              "10%": "mdi:fan-speed-1",
+              "20%": "mdi:fan-speed-1",
+              "30%": "mdi:fan-speed-1",
+              "40%": "mdi:fan-speed-2",
+              "50%": "mdi:fan-speed-2",
+              "60%": "mdi:fan-speed-2",
+              "70%": "mdi:fan-speed-3",
+              "80%": "mdi:fan-speed-3",
+              "90%": "mdi:fan-speed-3",
+              "100%": "mdi:fan-speed-3"
+            }
+          }
+        }
+      },
+      "ac": {
+        "state_attributes": {
+          "fan_mode": {
+            "default": "mdi:fan",
+            "state": {
+              "Auto": "mdi:fan-auto",
+              "1st Speed": "mdi:fan-speed-1",
+              "2nd Speed": "mdi:fan-speed-2",
+              "3rd Speed": "mdi:fan-speed-3",
+              "Silent": "mdi:weather-night"
+            }
+          },
+          "swing_mode": {
+            "default": "mdi:arrow-oscillating",
+            "state": {
+              "Auto": "mdi:autorenew",
+              "Top": "mdi:arrow-up-bold",
+              "Top-Center": "mdi:arrow-up-thin",
+              "Center": "mdi:minus",
+              "Center-Bottom": "mdi:arrow-down-thin",
+              "Bottom": "mdi:arrow-down-bold",
+              "Swing": "mdi:arrow-up-down-bold"
+            }
+          },
+          "swing_horizontal_mode": {
+            "default": "mdi:arrow-oscillating",
+            "state": {
+              "Left": "mdi:arrow-left-bold",
+              "Left-Center": "mdi:arrow-left-thin",
+              "Center": "mdi:minus",
+              "Center-Right": "mdi:arrow-right-thin",
+              "Right": "mdi:arrow-right-bold",
+              "Sides (Low Angle)": "mdi:arrow-expand-horizontal",
+              "Sides (High Angle)": "mdi:swap-horizontal-bold",
+              "Sides To Center": "mdi:arrow-collapse-horizontal"
+            }
+          }
+        }
+      },
+      "fancoil": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:tune-variant",
+            "state": {
+              "Manual": "mdi:hand-back-right",
+              "Always-off": "mdi:cancel"
+            }
+          },
+          "fan_mode": {
+            "default": "mdi:fan",
+            "state": {
+              "0%": "mdi:fan-off",
+              "10%": "mdi:fan-speed-1",
+              "20%": "mdi:fan-speed-1",
+              "30%": "mdi:fan-speed-1",
+              "40%": "mdi:fan-speed-2",
+              "50%": "mdi:fan-speed-2",
+              "60%": "mdi:fan-speed-2",
+              "70%": "mdi:fan-speed-3",
+              "80%": "mdi:fan-speed-3",
+              "90%": "mdi:fan-speed-3",
+              "100%": "mdi:fan-speed-3"
+            }
+          }
+        }
+      },
+      "valve_heating": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:tune-variant",
+            "state": {
+              "Manual": "mdi:hand-back-right",
+              "Always-off": "mdi:cancel"
+            }
+          }
+        }
+      },
+      "climate_control": {
+        "state_attributes": {
+          "preset_mode": {
+            "default": "mdi:tune-variant"
+          }
+        }
+      },
+      "conditioner": {
+        "state_attributes": {
+          "fan_mode": {
+            "default": "mdi:fan",
+            "state": {
+              "Auto": "mdi:fan-auto",
+              "1st Speed": "mdi:fan-speed-1",
+              "2nd Speed": "mdi:fan-speed-2",
+              "3rd Speed": "mdi:fan-speed-3",
+              "Silent": "mdi:weather-night"
+            }
+          },
+          "swing_mode": {
+            "default": "mdi:arrow-oscillating",
+            "state": {
+              "Auto": "mdi:autorenew",
+              "Top": "mdi:arrow-up-bold",
+              "Top-Center": "mdi:arrow-up-thin",
+              "Center": "mdi:minus",
+              "Center-Bottom": "mdi:arrow-down-thin",
+              "Bottom": "mdi:arrow-down-bold",
+              "Swing": "mdi:arrow-up-down-bold"
+            }
+          },
+          "swing_horizontal_mode": {
+            "default": "mdi:arrow-oscillating",
+            "state": {
+              "Left": "mdi:arrow-left-bold",
+              "Left-Center": "mdi:arrow-left-thin",
+              "Center": "mdi:minus",
+              "Center-Right": "mdi:arrow-right-thin",
+              "Right": "mdi:arrow-right-bold",
+              "Sides (Low Angle)": "mdi:arrow-expand-horizontal",
+              "Sides (High Angle)": "mdi:swap-horizontal-bold",
+              "Sides To Center": "mdi:arrow-collapse-horizontal"
+            }
+          }
+        }
+      }
+    }
+  }
+}

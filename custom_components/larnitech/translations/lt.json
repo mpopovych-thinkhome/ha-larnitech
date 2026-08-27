@@ -1,0 +1,114 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Larnitech valdiklis",
+        "data": {
+          "connection_type": "Ryšio tipas (debesis / vietinis)",
+          "serial": "Serijos numeris (debesis)",
+          "host": "Adresas / IP (vietinis)",
+          "port": "Prievadas (vietinis)",
+          "key": "API raktas (iš LT_Setup)",
+          "entity_id_pattern": "Entity ID pavadinimų šablonas",
+          "auto_remove": "Automatiškai šalinti dingusius arba tipą pakeitusius įrenginius",
+          "update_names": "Automatiškai atnaujinti pavadinimus iš Larnitech",
+          "use_areas": "Naudoti Larnitech kambarius (kurti zonas ir priskirti įrenginius)",
+          "update_areas": "Automatiškai atnaujinti įrenginių priskyrimą kambariams",
+          "read_only": "Tik skaitymo režimas — tik skaityti iš Larnitech, niekada nerašyti. Objekto pakeitimas iš HA atšaukiamas: jis grįžta į tikrąją Larnitech būseną",
+          "name_suffix_addr": "Prie objektų pavadinimų pridėti Larnitech adresą, pvz. „Temperature (1:98)“",
+          "scan_interval": "Apklausos intervalas — apsauga nuo prarastų push įvykių ir keepalive"
+        }
+      },
+      "reconfigure": {
+        "title": "Larnitech ryšys",
+        "data": {
+          "connection_type": "Ryšio tipas (debesis / vietinis)",
+          "serial": "Serijos numeris (debesis)",
+          "host": "Adresas / IP (vietinis)",
+          "port": "Prievadas (vietinis)",
+          "key": "API raktas (iš LT_Setup)",
+          "entity_id_pattern": "Entity ID pavadinimų šablonas — pakeitus pervadinami visi šio valdiklio objektai. HA neatnaujina skydelių, automatizacijų ir scenarijų, kurie naudoja senus ID"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nepavyko prisijungti prie valdiklio.",
+      "invalid_auth": "API raktas atmestas."
+    },
+    "abort": {
+      "already_configured": "Šis valdiklis jau sukonfigūruotas.",
+      "reconfigure_successful": "Ryšys atnaujintas."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Larnitech nustatymai",
+        "data": {
+          "auto_remove": "Automatiškai šalinti dingusius arba tipą pakeitusius įrenginius",
+          "update_names": "Automatiškai atnaujinti pavadinimus iš Larnitech",
+          "use_areas": "Naudoti Larnitech kambarius (kurti zonas ir priskirti įrenginius)",
+          "update_areas": "Automatiškai atnaujinti įrenginių priskyrimą kambariams",
+          "read_only": "Tik skaitymo režimas — tik skaityti iš Larnitech, niekada nerašyti. Objekto pakeitimas iš HA atšaukiamas: jis grįžta į tikrąją Larnitech būseną",
+          "name_suffix_addr": "Prie objektų pavadinimų pridėti Larnitech adresą, pvz. „Temperature (1:98)“. Rankiniu būdu pervadinti objektai išlaiko jūsų pavadinimą",
+          "scan_interval": "Apklausos intervalas — apsauga nuo prarastų push įvykių ir keepalive"
+        }
+      }
+    }
+  },
+  "selector": {
+    "entity_id_pattern": {
+      "options": {
+        "serial_id_subid": "Serijos numeris + adresas — sensor.eaffc8c1_110_42",
+        "larnitech_id_subid": "larnitech + adresas — sensor.larnitech_110_42",
+        "room_devicename": "Kambarys + įrenginio pavadinimas — sensor.kitchen_temperature",
+        "room_devicename_id_subid": "Kambarys + įrenginio pavadinimas + adresas — sensor.kitchen_temperature_110_42"
+      }
+    }
+  },
+  "entity": {
+    "valve": {
+      "larnitech_valve": {
+        "state": {
+          "open": "Atidaryta",
+          "closed": "Uždaryta"
+        }
+      }
+    },
+    "climate": {
+      "ac": {
+        "state_attributes": {
+          "swing_mode": {
+            "name": "Vertikalios menteles"
+          },
+          "swing_horizontal_mode": {
+            "name": "Horizontalios menteles"
+          }
+        }
+      },
+      "conditioner": {
+        "state_attributes": {
+          "swing_mode": {
+            "name": "Vertikalios menteles"
+          },
+          "swing_horizontal_mode": {
+            "name": "Horizontalios menteles"
+          }
+        }
+      }
+    }
+  },
+  "issues": {
+    "mass_device_removal": {
+      "title": "Larnitech ({title}): dingo daugiau nei pusė žinomų įrenginių",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Pašalinti dingusius Larnitech įrenginius?",
+            "description": "{missing} iš {total} anksčiau žinomų įrenginių nėra paskutinėje „{title}“ `get-devices` momentinėje kopijoje — tai gerokai daugiau nei vieno įrenginio dingimas. Dažniausia priežastis yra valdiklio ar tinklo sutrikimas, netinkamai sukonfigūruotas objektas arba ne tas serveris, o ne tikras masinis šalinimas. Patvirtinkite tik tuo atveju, jei esate tikri, kad šie įrenginiai tikrai pašalinti iš Larnitech; kitu atveju palikite nepatvirtintą ir pirmiausia patikrinkite ryšį — problema išnyks savaime, kai tik ateis normali momentinė kopija."
+          }
+        }
+      }
+    }
+  }
+}

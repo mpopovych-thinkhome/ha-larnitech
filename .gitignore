@@ -5,3 +5,7 @@ __pycache__/
 Thumbs.db
 .idea/
 .vscode/
+
+# Internal-only docs — kept local, never pushed (see CHANGELOG for public history)
+TODO.md
+larnitech_integration_spec.md

@@ -1,10 +1,11 @@
-# Updated: 2026-06-24 15:15
+# Updated: 2026-08-14 13:00
 """Larnitech API2 WebSocket client: persistent connection, push + request/response."""
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
+import re
 
 import websockets
 
@@ -17,6 +18,11 @@ _LOGGER = logging.getLogger(__name__)
 # balanced, so we insert a placeholder key instead of dropping a brace.
 _QUIRK_FROM = '"status":{{'
 _QUIRK_TO = '"status":{"_raw":{'
+
+# long-text widgets embed raw control characters (\t, \n, ...) unescaped
+# inside JSON strings — invalid JSON, breaks json.loads() for the whole
+# frame (and everything else batched into it) if left in.
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
 
 
 class LarnitechError(Exception):
@@ -49,6 +55,7 @@ class LarnitechClient:
         self._send_lock = asyncio.Lock()
         self._poll_lock = asyncio.Lock()
         self._devices_future: asyncio.Future | None = None
+        self._status_get_future: asyncio.Future | None = None
         self._on_event = None
         self._on_resync = None
 
@@ -133,18 +140,33 @@ class LarnitechClient:
     # --- message handling ------------------------------------------------
 
     def _handle(self, raw: str) -> None:
-        raw = raw.replace(_QUIRK_FROM, _QUIRK_TO)
+        if _QUIRK_FROM in raw:
+            _LOGGER.debug("Larnitech: repairing doubled-brace status quirk")
+            raw = raw.replace(_QUIRK_FROM, _QUIRK_TO)
+        raw = _CONTROL_CHARS.sub("", raw)
         try:
             msg = json.loads(raw)
-        except json.JSONDecodeError:
-            _LOGGER.debug("Larnitech: undecodable frame")
+        except json.JSONDecodeError as err:
+            # Keep the raw frame (truncated) so a new quirk can be diagnosed.
+            _LOGGER.warning("Larnitech: undecodable frame (%s): %.500s", err, raw)
             return
-        if msg.get("response") == "get-devices":
+        response = msg.get("response")
+        if response == "get-devices":
             fut = self._devices_future
             if fut is not None and not fut.done():
                 fut.set_result(msg.get("devices", []))
+        elif response == "status-get":
+            fut = self._status_get_future
+            if fut is not None and not fut.done():
+                fut.set_result(msg.get("devices", []))
+        elif response == "status-set":
+            for dev in msg.get("devices", []):
+                if not dev.get("success", True):
+                    _LOGGER.warning("Larnitech: status-set failed for %s: %s", dev.get("addr"), dev)
         elif msg.get("event") == "statuses" and self._on_event is not None:
             self._on_event(msg.get("devices", []))
+        else:
+            _LOGGER.debug("Larnitech: unhandled frame: %.300s", raw)
 
     # --- requests --------------------------------------------------------
 
@@ -162,6 +184,23 @@ class LarnitechClient:
                 raise LarnitechError(f"get-devices failed: {err}") from err
             finally:
                 self._devices_future = None
+
+    async def async_get_device_status(self, addr: str) -> dict | None:
+        """Point-query one device (`status-get`) — cheap way to verify what a
+        write actually landed as, instead of a full `get-devices` snapshot."""
+        async with self._poll_lock:
+            if self._ws is None:
+                raise LarnitechError("not connected")
+            loop = asyncio.get_running_loop()
+            self._status_get_future = loop.create_future()
+            try:
+                await self._send({"request": "status-get", "addr": addr, "status": "detailed"})
+                devices = await asyncio.wait_for(self._status_get_future, timeout=10)
+                return devices[0] if devices else None
+            except (OSError, websockets.WebSocketException, asyncio.TimeoutError) as err:
+                raise LarnitechError(f"status-get failed: {err}") from err
+            finally:
+                self._status_get_future = None
 
     async def async_set_status(self, addr: str, status: dict) -> None:
         if self._ws is None:
