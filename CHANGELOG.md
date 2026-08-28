@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3-alpha] - 2026-08-28
+
+### Added
+- **Read-only objects now say so.** A write blocked by an object's
+  read-only mode used to fail silently — the entity just snapped back to
+  its real state a second later with no visible reason, indistinguishable
+  from a broken control. It now raises a persistent notification in Home
+  Assistant's own notification drawer, naming the object, localized
+  through the integration's own translations (en/ru/lt/uk).
+
 ## [0.9.2-alpha] - 2026-08-27
 
 Follow-up to 0.9.1, found by measuring the same object once it would stay up
