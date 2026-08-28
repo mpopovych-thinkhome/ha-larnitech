@@ -5,6 +5,7 @@ __pycache__/
 Thumbs.db
 .idea/
 .vscode/
+.venv/
 
 # Internal-only docs — kept local, never pushed (see CHANGELOG for public history)
 TODO.md
