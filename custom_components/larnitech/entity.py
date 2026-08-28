@@ -1,4 +1,4 @@
-# Updated: 2026-08-27 15:25
+# Updated: 2026-08-28 16:16
 """Shared base entity for Larnitech."""
 from __future__ import annotations
 
@@ -156,7 +156,9 @@ class LarnitechEntity(CoordinatorEntity):
         return self.status.get("state") == "on"
 
     async def async_write_status(self, status: dict) -> None:
-        if not self.coordinator.read_only:
+        if self.coordinator.read_only:
+            await self.coordinator.async_notify_read_only()
+        else:
             await self.coordinator.client.async_set_status(self._addr, status)
         # Fire-and-forget: verifying is a courtesy, not part of the write
         # itself — don't make the HA service call (and the UI spinner) wait

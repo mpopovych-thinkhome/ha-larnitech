@@ -98,6 +98,12 @@
       }
     }
   },
+  "notification": {
+    "read_only_write_blocked": {
+      "title": "Larnitech: tik skaitymo objektas",
+      "message": "„{title}“ veikia tik skaitymo režimu — būsenų pakeitimai iš Home Assistant nesiunčiami į Larnitech."
+    }
+  },
   "issues": {
     "auth_rejected": {
       "title": "Larnitech ({title}): API raktas atmestas",
