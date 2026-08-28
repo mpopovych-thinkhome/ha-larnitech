@@ -98,6 +98,12 @@
       }
     }
   },
+  "notification": {
+    "read_only_write_blocked": {
+      "title": "Larnitech: об'єкт у режимі read-only",
+      "message": "«{title}» перебуває в режимі read-only — зміни статусів з Home Assistant не надсилаються в Larnitech."
+    }
+  },
   "issues": {
     "auth_rejected": {
       "title": "Larnitech ({title}): API-ключ відхилено",

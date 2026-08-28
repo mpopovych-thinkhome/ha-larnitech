@@ -98,6 +98,12 @@
       }
     }
   },
+  "notification": {
+    "read_only_write_blocked": {
+      "title": "Larnitech: read-only object",
+      "message": "\"{title}\" is in read-only mode — status changes from Home Assistant are not sent to Larnitech."
+    }
+  },
   "issues": {
     "auth_rejected": {
       "title": "Larnitech ({title}): the API key was rejected",
