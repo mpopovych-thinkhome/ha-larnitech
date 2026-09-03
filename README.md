@@ -94,6 +94,12 @@ say what each pair becomes in Home Assistant and what you can do with it.
 |---|---|---|
 | `switch` | `event` | Physical wall button (not a relay). Fires press, hold-repeat, short release and long release events with the hold duration — use it as an automation trigger |
 
+### Media
+
+| type/sub-type | HA domain | What you get |
+|---|---|---|
+| `speaker` | `media_player` | Media point — play/pause/stop, volume, mute, and playing any URL the controller can reach. Position and track length are shown where the source has them (a file does, a live radio stream does not). "Next/previous" step through the **sources** configured on the controller, not through tracks — that list isn't readable over the API, so there is no source picker, and no track title, artist or artwork is available either. Announcements and TTS work and behave the way you'd expect a PA system to: an announcement interrupts the music and the music comes back by itself afterwards, from where it got to. See [Announcements and TTS](#announcements-and-tts). |
+
 ### Virtual and meters
 
 | type/sub-type | HA domain | What you get |
@@ -110,7 +116,6 @@ Widget types with no Home Assistant entities at all:
 - `ir-receiver`, `ir-transmitter` — IR receive/send
 - `remote-control` — IR/RF remote emulation
 - `rtsp` — camera stream
-- `speaker` — multiroom audio
 - `intercom` — door intercom
 - `item-ref` — reference to another widget
 - `com-port` — raw serial port
@@ -135,6 +140,63 @@ Gaps inside otherwise supported types:
 - Local (LAN) auto-discovery — a controller has to be added by hand
 
 Need any of these? Get in touch — see [Contact](#contact).
+
+## Announcements and TTS
+
+A media point can interrupt itself: play something at a higher priority and
+it takes over, and when that finishes the previous source comes back on its
+own, from the position it would have reached. The controller does all of
+this — nothing has to restore the music afterwards.
+
+Home Assistant's own announcement flag drives it, so a spoken notification
+is just:
+
+```yaml
+action: tts.speak
+target:
+  entity_id: tts.google_translate_en_com
+data:
+  media_player_entity_id: media_player.hall_media_point
+  message: The washing machine has finished.
+```
+
+Playing a file works the same way, with `announce: true` to interrupt or
+without it to simply change what is playing:
+
+```yaml
+action: media_player.play_media
+target:
+  entity_id: media_player.hall_media_point
+data:
+  media_content_type: music
+  media_content_id: media-source://media_source/local/doorbell.mp3
+  announce: true
+```
+
+To pick the priority yourself — to sit above or below other announcements
+the controller makes — pass it explicitly:
+
+```yaml
+  extra:
+    priority: 200
+```
+
+**The media point fetches the audio itself**, over the network, which has
+two consequences:
+
+- Home Assistant must be reachable from the controller. Set an Internet
+  address under **Settings → System → Network**; without one, HA hands out
+  its LAN address and a controller that isn't on that LAN plays nothing,
+  silently.
+- Any URL works, not just HA's own — internet radio, a NAS, a DLNA server.
+  It just has to resolve from where the controller sits.
+
+Priority also decides whether a command is obeyed at all: while a source
+holds a level, anything arriving below it is discarded without an error.
+Every control here is sent at the level the media point is already on, so
+the buttons keep working whatever grabbed it — but a controller script
+holding a media point at a high priority will still ignore a *new* stream
+started from HA at the default level.
 
 ## Settings
 

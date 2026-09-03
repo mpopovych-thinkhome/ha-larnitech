@@ -5,6 +5,42 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.5-beta] - 2026-09-03
+
+Media points, and the first release to leave alpha.
+
+### Added
+- **`speaker` (media point) is now a `media_player`.** Play, pause, stop,
+  next/previous source, volume, mute, seek, and playing any URL the
+  controller can reach. Position and track length appear where the source
+  has them — a file does, a live radio stream does not. There is no source
+  picker and no track metadata: neither is readable over the API.
+- **Announcements and TTS.** `play_media` with `announce: true` — what
+  `tts.speak` sends — plays over whatever is running, and the previous
+  source resumes by itself afterwards from where it got to, because the
+  controller keeps a priority stack of sources. `extra: {priority: N}` sets
+  the level by hand. Media-source ids resolve to an absolute URL, so HA's
+  media library and TTS both work; the media point fetches the audio
+  itself, so an Internet address must be configured under Settings →
+  System → Network for a controller that is not on HA's LAN.
+- **Read-only objects now say so.** A write blocked by an object's
+  read-only mode used to fail silently — the entity snapped back to its
+  real state with no visible reason. It now raises a notification in Home
+  Assistant's notification drawer, naming the object, localized through the
+  integration's own translations (en/ru/lt/uk).
+
+### Fixed
+- **A media point kept showing the previous track's length.** Only a file
+  has a duration; switching to a live radio stream leaves the controller
+  with no value to report, and it drops the key rather than nulling it — so
+  merging partial updates resurrected the old one. A source change now
+  invalidates it outright and re-reads the full status.
+- **Commands to a busy media point were discarded in silence.** The
+  controller ignores anything arriving below the priority the current
+  source holds, so a media point a controller script had grabbed ignored
+  pause, mute and even stop. Every command is now sent at the level the
+  point is already on.
+
 ## [0.9.3-alpha] - 2026-08-28
 
 ### Added
