@@ -1,4 +1,4 @@
-# Updated: 2026-08-28 16:16
+# Updated: 2026-09-03 13:55
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -325,11 +325,16 @@ class LarnitechCoordinator(DataUpdateCoordinator):
             merged["status"] = merge_status(merged.get("status", {}), status)
             updated[addr] = merged
             pushed.add(addr)
-            # A preset switch can change which setpoints exist at all — and an
-            # event only carries what changed, so "no setpoint key" here is
-            # ambiguous (unchanged, or gone with the old automation?). Re-read
-            # the device for the unambiguous full status.
-            if "automation" in status:
+            # Some changes decide which keys exist AT ALL, and an event only
+            # carries what changed — so an absent key here is ambiguous
+            # (unchanged, or gone?). Re-read for the unambiguous full status:
+            # - `automation`: a preset switch changes which setpoints exist.
+            # - `url`: a media point switching source changes whether
+            #   `duration` exists (a file has one, a live stream does not).
+            #   Without this, HA kept showing the previous file's duration
+            #   over a stream — the controller drops the key rather than
+            #   nulling it, and a merge cannot tell those apart.
+            if "automation" in status or "url" in status:
                 verify.append(addr)
 
         if pushed:
