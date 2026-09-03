@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 15:05
+# Updated: 2026-09-03 15:25
 """Larnitech `speaker` (media point) as a `media_player`.
 
 Everything below is confirmed live on the demo case (`5:30`), 2026-09-02/03.
@@ -72,10 +72,8 @@ from homeassistant.components.media_player import (
     MediaPlayerState,
     MediaType,
 )
-from homeassistant.components.media_player.browse_media import (
-    async_process_play_media_url,
-)
 from homeassistant.core import callback
+from homeassistant.helpers.network import get_url
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
@@ -324,9 +322,13 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         """Play a URL, an HA media-library item, or a TTS announcement.
 
         A `media-source://` id (what the media browser and `tts.speak` hand
-        over) is resolved to an HA-served URL and made absolute, because the
-        controller fetches it itself rather than receiving a stream from HA —
-        it has to be a URL that resolves from where the controller sits.
+        over) resolves to a path on HA itself, which has to be made absolute:
+        the controller FETCHES the media, HA does not push it. And it fetches
+        from wherever the controller sits — a cloud-connected one is not on
+        HA's LAN at all — so the external URL is preferred over the internal
+        one HA would otherwise pick. Without an Internet address configured
+        (Settings > System > Network) this raises, which is the honest
+        outcome: no URL exists that the controller could reach.
 
         `announce: true` claims `_PRIORITY_ANNOUNCE`, so the announcement
         interrupts whatever plays and the previous source comes back on its
@@ -340,7 +342,8 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
                 self.hass, media_id, self.entity_id
             )
             media_id = item.url
-        media_id = async_process_play_media_url(self.hass, media_id)
+        if media_id.startswith("/"):
+            media_id = f"{get_url(self.hass, prefer_external=True)}{media_id}"
 
         extra = kwargs.get(ATTR_MEDIA_EXTRA) or {}
         priority = extra.get("priority")
