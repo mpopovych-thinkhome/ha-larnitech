@@ -1,4 +1,4 @@
-# Updated: 2026-08-21 17:30
+# Updated: 2026-09-03 12:45
 """Constants for the Larnitech integration."""
 
 from homeassistant.util import slugify
@@ -115,6 +115,7 @@ PLATFORMS = [
     "climate",
     "button",
     "number",
+    "media_player",
 ]
 
 # `lamp` sub-type -> HA platform. Absent sub-type = plain light.
@@ -200,6 +201,7 @@ HANDLED_TYPES = {
     "fancoil",
     "valve",
     "vent",
+    "speaker",
 }
 
 
