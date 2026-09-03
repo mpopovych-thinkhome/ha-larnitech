@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 13:55
+# Updated: 2026-09-03 14:15
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -90,12 +90,20 @@ def _model_type(model: str | None) -> str | None:
 
 
 def merge_status(old: dict, new: dict) -> dict:
-    """Merge a status update, replacing the setpoint group wholesale."""
+    """Merge a status update, dropping keys the update proves are gone."""
     merged = {**old, **new}
     if any(key in new for key in _SETPOINT_KEYS):
         for key in _SETPOINT_KEYS:
             if key not in new:
                 merged.pop(key, None)
+    # A media point that changed `url` changed what is playing, and only a
+    # file has a `duration` — a live stream has none. The controller drops
+    # the key instead of nulling it, so the source change is the only signal
+    # that the previous track's duration no longer applies. Dropping it here
+    # rather than waiting for the re-read (see `apply_events`) keeps it out
+    # of the window where the controller still reports the old track.
+    if "url" in new and "duration" not in new:
+        merged.pop("duration", None)
     return merged
 
 
