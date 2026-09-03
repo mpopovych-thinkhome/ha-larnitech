@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 14:35
+# Updated: 2026-09-03 14:55
 """Larnitech `speaker` (media point) as a `media_player`.
 
 Everything below is confirmed live on the demo case (`5:30`), 2026-09-02/03.
@@ -36,8 +36,15 @@ interruption stack, confirmed live 2026-09-03:
 That is an announcement system, so it is wired to HA's own: `play_media`
 with `announce: true` (what `tts.speak` sends) claims `_PRIORITY_ANNOUNCE`
 and the previous source returns by itself afterwards; `extra: {priority: N}`
-sets the level explicitly. `stop` always goes out at `_PRIORITY_MAX` so the
-button can never be the one command the controller ignores.
+sets the level explicitly.
+
+Because the level also decides whether a command runs at all, no control
+here is ever sent bare. `stop` goes out at `_PRIORITY_MAX` — it releases a
+level rather than claiming one, so the top is safe and the button can never
+be the one command the controller ignores. Everything else re-asserts the
+level already active (`_active_priority`): sending those at the top would
+CLAIM it, and a pause sent that way parked the point at 250 where HA's own
+`play` could no longer reach it.
 
 Two live findings shape the code more than the docs do:
 - `muted` is present in the status only WHILE muted; unmuting removes the key
@@ -106,8 +113,9 @@ _POSITION_RESYNC = 5
 # Priority levels (the controller's own scale is 0-250).
 # `stop` goes out at the top so it always outranks whatever holds the point
 # — a stop the controller silently drops is worse than one that interrupts.
-# It releases only the active level, so on a point holding an announcement
-# over music, the first stop returns the music and a second one stops that.
+# Safe to send at the top precisely because stop RELEASES the active level
+# instead of claiming one: on a point holding an announcement over music,
+# the first stop returns the music and a second one stops that.
 _PRIORITY_MAX = 250
 # Announcements sit well above the levels controller scripts use in practice
 # (8 in the vendor's own example), while leaving room above for anything
@@ -224,6 +232,26 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         return _STATE_MAP.get(raw, MediaPlayerState.IDLE)
 
     @property
+    def _active_priority(self) -> int:
+        """The level the media point is held at right now.
+
+        Every command except `stop` goes out at this level. Sending below it
+        is discarded in silence — a point a controller script grabbed at
+        priority 8 ignored HA's pause and mute outright (confirmed live).
+        Sending ABOVE it is not the answer either: unlike `stop`, those
+        commands CLAIM the level they arrive with, and a pause sent at the
+        top left the point parked at 250, where HA's own `play` could no
+        longer reach it. Re-asserting the level that is already active always
+        passes the gate and claims nothing new."""
+        priority = self.status.get("priority")
+        if isinstance(priority, (int, float)):
+            return int(priority)
+        return _PRIORITY_NORMAL
+
+    async def _write_at_active_priority(self, status: dict) -> None:
+        await self.async_write_status({**status, "priority": self._active_priority})
+
+    @property
     def volume_level(self) -> float | None:
         volume = self.status.get("volume")
         if not isinstance(volume, (int, float)):
@@ -266,10 +294,10 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         }
 
     async def async_media_play(self) -> None:
-        await self.async_write_status({"state": _CMD_PLAY})
+        await self._write_at_active_priority({"state": _CMD_PLAY})
 
     async def async_media_pause(self) -> None:
-        await self.async_write_status({"state": _CMD_PAUSE})
+        await self._write_at_active_priority({"state": _CMD_PAUSE})
 
     async def async_media_stop(self) -> None:
         # Top priority deliberately — see `_PRIORITY_MAX`.
@@ -278,25 +306,25 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         )
 
     async def async_media_next_track(self) -> None:
-        await self.async_write_status({"state": _CMD_NEXT})
+        await self._write_at_active_priority({"state": _CMD_NEXT})
 
     async def async_media_previous_track(self) -> None:
-        await self.async_write_status({"state": _CMD_PREVIOUS})
+        await self._write_at_active_priority({"state": _CMD_PREVIOUS})
 
     async def async_set_volume_level(self, volume: float) -> None:
         # The controller quantises to 1/250 (0.4%), so the value read back is
         # the nearest step, not the one written — never verify for equality.
-        await self.async_write_status({"volume": round(volume * 100, 1)})
+        await self._write_at_active_priority({"volume": round(volume * 100, 1)})
 
     async def async_mute_volume(self, mute: bool) -> None:
-        await self.async_write_status({"muted": mute})
+        await self._write_at_active_priority({"muted": mute})
 
     async def async_media_seek(self, position: float) -> None:
         # Seconds, in the same shape the device reports them. Nothing to
         # clamp against on a live stream (no duration, and the write is
         # ignored there anyway); HA's own slider is bounded by
         # `media_duration` where there is one.
-        await self.async_write_status({"position": f"{position:.3f}"})
+        await self._write_at_active_priority({"position": f"{position:.3f}"})
 
     async def async_play_media(self, media_type, media_id: str, **kwargs) -> None:
         """Play a URL, an HA media-library item, or a TTS announcement.
