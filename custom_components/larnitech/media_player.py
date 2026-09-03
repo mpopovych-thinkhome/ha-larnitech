@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 13:35
+# Updated: 2026-09-03 14:35
 """Larnitech `speaker` (media point) as a `media_player`.
 
 Everything below is confirmed live on the demo case (`5:30`), 2026-09-02/03.
@@ -19,6 +19,26 @@ What the API2 side of this type can and cannot do:
   resets to zero (that is how a bare `90000` — ninety thousand seconds, not
   milliseconds — was found to be seconds).
 
+`priority` turned out to be the most capable part of this type — a real
+interruption stack, confirmed live 2026-09-03:
+- A source claims a level. A command carrying a HIGHER priority takes the
+  point over; one carrying a LOWER priority is discarded in silence, `stop`
+  included — a media point held at priority 8 ignores every plain write HA
+  makes (HA's own writes carry no priority, i.e. the lowest level there is).
+- `stop` at a priority >= the active one releases the ACTIVE level and the
+  source underneath resumes where it would have been — the interrupted
+  stream had kept running. With nothing underneath, playback stops.
+- A source that simply plays to its end pops the same way, with no `eof`
+  in between: the announcement ends and the music is back on its own.
+- `priority` is only accepted written TOGETHER with `url` + `state` — on its
+  own the controller does not even acknowledge it.
+
+That is an announcement system, so it is wired to HA's own: `play_media`
+with `announce: true` (what `tts.speak` sends) claims `_PRIORITY_ANNOUNCE`
+and the previous source returns by itself afterwards; `extra: {priority: N}`
+sets the level explicitly. `stop` always goes out at `_PRIORITY_MAX` so the
+button can never be the one command the controller ignores.
+
 Two live findings shape the code more than the docs do:
 - `muted` is present in the status only WHILE muted; unmuting removes the key
   rather than setting it `false`. Reading it as `status.get("muted") is True`
@@ -33,13 +53,20 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from homeassistant.components import media_source
 from homeassistant.components.media_player import (
+    ATTR_MEDIA_ANNOUNCE,
+    ATTR_MEDIA_EXTRA,
     ENTITY_ID_FORMAT,
+    BrowseMedia,
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
     MediaPlayerEntityFeature,
     MediaPlayerState,
     MediaType,
+)
+from homeassistant.components.media_player.browse_media import (
+    async_process_play_media_url,
 )
 from homeassistant.core import callback
 from homeassistant.util import dt as dt_util
@@ -75,6 +102,21 @@ _CMD_PREVIOUS = "previous"
 # How far (seconds) the reported position may drift from what the current
 # anchor predicts before it is re-anchored — see `_sync_position`.
 _POSITION_RESYNC = 5
+
+# Priority levels (the controller's own scale is 0-250).
+# `stop` goes out at the top so it always outranks whatever holds the point
+# — a stop the controller silently drops is worse than one that interrupts.
+# It releases only the active level, so on a point holding an announcement
+# over music, the first stop returns the music and a second one stops that.
+_PRIORITY_MAX = 250
+# Announcements sit well above the levels controller scripts use in practice
+# (8 in the vendor's own example), while leaving room above for anything
+# genuinely urgent.
+_PRIORITY_ANNOUNCE = 100
+# Ordinary playback claims the bottom level: HA is one source among several,
+# and grabbing a high level here would make every HA-started stream
+# un-interruptible by the controller's own announcements.
+_PRIORITY_NORMAL = 0
 
 
 def _parse_time(value) -> float | None:
@@ -124,6 +166,8 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.VOLUME_MUTE
         | MediaPlayerEntityFeature.PLAY_MEDIA
         | MediaPlayerEntityFeature.SEEK
+        | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
+        | MediaPlayerEntityFeature.BROWSE_MEDIA
     )
 
     def __init__(self, coordinator, addr):
@@ -228,7 +272,10 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         await self.async_write_status({"state": _CMD_PAUSE})
 
     async def async_media_stop(self) -> None:
-        await self.async_write_status({"state": _CMD_STOP})
+        # Top priority deliberately — see `_PRIORITY_MAX`.
+        await self.async_write_status(
+            {"state": _CMD_STOP, "priority": _PRIORITY_MAX}
+        )
 
     async def async_media_next_track(self) -> None:
         await self.async_write_status({"state": _CMD_NEXT})
@@ -252,9 +299,46 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         await self.async_write_status({"position": f"{position:.3f}"})
 
     async def async_play_media(self, media_type, media_id: str, **kwargs) -> None:
-        """Point the media point at a URL it can reach itself.
+        """Play a URL, an HA media-library item, or a TTS announcement.
 
-        Writing `url` switches the stream and keeps playing (confirmed live);
-        position resets to zero. `media_type` is not checked — the controller
-        takes any URL and there is nothing to validate it against."""
-        await self.async_write_status({"url": media_id})
+        A `media-source://` id (what the media browser and `tts.speak` hand
+        over) is resolved to an HA-served URL and made absolute, because the
+        controller fetches it itself rather than receiving a stream from HA —
+        it has to be a URL that resolves from where the controller sits.
+
+        `announce: true` claims `_PRIORITY_ANNOUNCE`, so the announcement
+        interrupts whatever plays and the previous source comes back on its
+        own when it ends; `extra: {priority: N}` sets the level by hand.
+        `url`, `priority` and `state` go in ONE write — the controller
+        ignores `priority` written on its own. `media_type` is not checked:
+        the controller takes any URL and there is nothing to validate
+        against."""
+        if media_source.is_media_source_id(media_id):
+            item = await media_source.async_resolve_media(
+                self.hass, media_id, self.entity_id
+            )
+            media_id = item.url
+        media_id = async_process_play_media_url(self.hass, media_id)
+
+        extra = kwargs.get(ATTR_MEDIA_EXTRA) or {}
+        priority = extra.get("priority")
+        if priority is None:
+            priority = (
+                _PRIORITY_ANNOUNCE
+                if kwargs.get(ATTR_MEDIA_ANNOUNCE)
+                else _PRIORITY_NORMAL
+            )
+        await self.async_write_status(
+            {"url": media_id, "priority": int(priority), "state": _CMD_PLAY}
+        )
+
+    async def async_browse_media(
+        self, media_content_type=None, media_content_id=None
+    ) -> BrowseMedia:
+        """Browse HA's own media library — the controller has no library of
+        its own to expose (its source list is invisible through the API)."""
+        return await media_source.async_browse_media(
+            self.hass,
+            media_content_id,
+            content_filter=lambda item: item.media_content_type.startswith("audio/"),
+        )
