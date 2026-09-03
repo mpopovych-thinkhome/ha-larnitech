@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 12:45
+# Updated: 2026-09-03 13:35
 """Larnitech `speaker` (media point) as a `media_player`.
 
 Everything below is confirmed live on the demo case (`5:30`), 2026-09-02/03.
@@ -11,10 +11,13 @@ What the API2 side of this type can and cannot do:
 - No track metadata of any kind (title, artist, artwork) — `url` is the only
   indication of what is playing.
 - No power on/off: the type has no such command, `stop` is the closest thing.
-- Seek is NOT offered: writing `position` (as `"30.000"` and as `60000`) was
-  acknowledged and ignored, position simply kept advancing. Both tries were
-  against a live radio stream, where seeking is meaningless anyway — so this
-  is "unconfirmed", not "known broken". Revisit with a file-backed source.
+- Seek works, but only where there is something to seek: on a file-backed
+  source it jumps as asked, on a live stream the write is acked and ignored.
+  The unit is SECONDS in every accepted form — `"1:00.000"`, `"20.000"` and
+  a bare number all landed on the same second. A target past the end of the
+  track does not clamp: playback ends, `state` becomes `eof` and `position`
+  resets to zero (that is how a bare `90000` — ninety thousand seconds, not
+  milliseconds — was found to be seconds).
 
 Two live findings shape the code more than the docs do:
 - `muted` is present in the status only WHILE muted; unmuting removes the key
@@ -52,6 +55,9 @@ _STATE_MAP = {
     "playing": MediaPlayerState.PLAYING,
     "pause": MediaPlayerState.PAUSED,
     "stopped": MediaPlayerState.IDLE,
+    # Reached the end of a track (also what a seek past the end produces).
+    # Undocumented by the vendor, found live 2026-09-03.
+    "eof": MediaPlayerState.IDLE,
     "error": MediaPlayerState.IDLE,
 }
 _STATE_ERROR = "error"
@@ -117,6 +123,7 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.VOLUME_STEP
         | MediaPlayerEntityFeature.VOLUME_MUTE
         | MediaPlayerEntityFeature.PLAY_MEDIA
+        | MediaPlayerEntityFeature.SEEK
     )
 
     def __init__(self, coordinator, addr):
@@ -236,6 +243,13 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
 
     async def async_mute_volume(self, mute: bool) -> None:
         await self.async_write_status({"muted": mute})
+
+    async def async_media_seek(self, position: float) -> None:
+        # Seconds, in the same shape the device reports them. Nothing to
+        # clamp against on a live stream (no duration, and the write is
+        # ignored there anyway); HA's own slider is bounded by
+        # `media_duration` where there is one.
+        await self.async_write_status({"position": f"{position:.3f}"})
 
     async def async_play_media(self, media_type, media_id: str, **kwargs) -> None:
         """Point the media point at a URL it can reach itself.
