@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 14:55
+# Updated: 2026-09-03 15:05
 """Larnitech `speaker` (media point) as a `media_player`.
 
 Everything below is confirmed live on the demo case (`5:30`), 2026-09-02/03.
@@ -39,12 +39,12 @@ and the previous source returns by itself afterwards; `extra: {priority: N}`
 sets the level explicitly.
 
 Because the level also decides whether a command runs at all, no control
-here is ever sent bare. `stop` goes out at `_PRIORITY_MAX` — it releases a
-level rather than claiming one, so the top is safe and the button can never
-be the one command the controller ignores. Everything else re-asserts the
-level already active (`_active_priority`): sending those at the top would
-CLAIM it, and a pause sent that way parked the point at 250 where HA's own
-`play` could no longer reach it.
+here is ever sent bare: play, pause, stop, next/previous, volume, mute and
+seek all re-assert the level already active (`_active_priority`), which
+always passes the gate. Deliberately not the top of the scale — a command
+CLAIMS the priority it arrives with (only `stop` releases instead), and a
+pause sent at 250 parked the point there, where HA's own `play` at priority
+0 could no longer reach it.
 
 Two live findings shape the code more than the docs do:
 - `muted` is present in the status only WHILE muted; unmuting removes the key
@@ -111,12 +111,6 @@ _CMD_PREVIOUS = "previous"
 _POSITION_RESYNC = 5
 
 # Priority levels (the controller's own scale is 0-250).
-# `stop` goes out at the top so it always outranks whatever holds the point
-# — a stop the controller silently drops is worse than one that interrupts.
-# Safe to send at the top precisely because stop RELEASES the active level
-# instead of claiming one: on a point holding an announcement over music,
-# the first stop returns the music and a second one stops that.
-_PRIORITY_MAX = 250
 # Announcements sit well above the levels controller scripts use in practice
 # (8 in the vendor's own example), while leaving room above for anything
 # genuinely urgent.
@@ -300,10 +294,10 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         await self._write_at_active_priority({"state": _CMD_PAUSE})
 
     async def async_media_stop(self) -> None:
-        # Top priority deliberately — see `_PRIORITY_MAX`.
-        await self.async_write_status(
-            {"state": _CMD_STOP, "priority": _PRIORITY_MAX}
-        )
+        # Releases the active level rather than stopping everything: with a
+        # source underneath (an announcement over music), that one resumes,
+        # and a second stop stops it too.
+        await self._write_at_active_priority({"state": _CMD_STOP})
 
     async def async_media_next_track(self) -> None:
         await self._write_at_active_priority({"state": _CMD_NEXT})
