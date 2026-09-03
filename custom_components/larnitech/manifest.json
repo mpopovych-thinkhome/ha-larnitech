@@ -3,6 +3,7 @@
   "name": "Larnitech",
   "codeowners": ["@mpopovych-thinkhome"],
   "config_flow": true,
+  "dependencies": ["media_source"],
   "documentation": "https://wiki.larnitech.com/API2",
   "iot_class": "local_push",
   "requirements": ["websockets>=12.0"],
