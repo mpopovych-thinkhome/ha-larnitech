@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.6-beta] - 2026-09-03
+
+### Changed
+- **The help and issue links now point at this repository.** The "?" on the
+  integration page opened the vendor's API2 wiki, which documents the
+  protocol rather than this integration — it opens the README instead. An
+  `issue_tracker` was added alongside it, so the report-an-issue link goes
+  to this repository's issues instead of Home Assistant's own.
+
 ## [0.9.5-beta] - 2026-09-03
 
 Media points, and the first release to leave alpha.
