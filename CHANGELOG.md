@@ -5,6 +5,22 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.7-beta] - 2026-09-10
+
+### Added
+- **`script` widgets are now switches.** An Imerel script instance carries a
+  real on/off state rather than being a one-shot trigger — it behaves like a
+  `lamp`, down to the same auto-mode flag — so it gets the same control.
+  Whether switching one script on switches its siblings off (house modes,
+  seasons) is per-object configuration and the controller's own doing; the
+  resulting states arrive as ordinary events either way.
+- **A connectivity sensor for every controller connection.** Whether the
+  WebSocket to an object is actually up was visible only in the log. It is
+  now a diagnostic binary sensor on the controller's own device, driven by
+  the socket rather than by the poll. It deliberately stays available when
+  the connection drops: an entity that goes `unavailable` cannot report that
+  the connection went away, which is the one thing it exists for.
+
 ## [0.9.6-beta] - 2026-09-03
 
 ### Changed
