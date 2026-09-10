@@ -1,4 +1,4 @@
-# Updated: 2026-08-27 15:39
+# Updated: 2026-09-10 18:05
 """Larnitech discrete sensors (read-only), added/removed dynamically."""
 from __future__ import annotations
 
@@ -9,8 +9,9 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.core import callback
+from homeassistant.helpers.entity import DeviceInfo
 
-from .const import DOMAIN
+from .const import DOMAIN, hub_slug
 from .entity import LarnitechEntity
 
 # Larnitech type -> device_class. All read an on/off `status.state`.
@@ -86,6 +87,9 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     entry.async_on_unload(coordinator.add_discovery_listener(_add_new))
     _add_new()
+    # Not part of the dynamic set: it belongs to the connection itself, not
+    # to any widget, so it exists for as long as the entry does.
+    async_add_entities([LarnitechConnectivitySensor(coordinator)])
 
 
 class LarnitechBinarySensor(LarnitechEntity, BinarySensorEntity):
@@ -142,3 +146,48 @@ class LarnitechMalfunctionSensor(LarnitechEntity, BinarySensorEntity):
     def extra_state_attributes(self) -> dict | None:
         code = self.status.get("malfunction")
         return {"malfunction_code": code} if code is not None else None
+
+
+class LarnitechConnectivitySensor(BinarySensorEntity):
+    """Whether the WebSocket to this controller is open — one per entry.
+
+    Deliberately NOT a `LarnitechEntity`: that ties an entity to one widget
+    address and to the coordinator's availability, and both are wrong here.
+    An entity that goes `unavailable` when the connection drops cannot report
+    that the connection dropped — the one moment it exists for. So it stays
+    available always, follows the socket rather than the poll, and reads
+    straight off the client instead of the device snapshot."""
+
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_has_entity_name = False
+    _attr_available = True
+    _attr_should_poll = False
+
+    def __init__(self, coordinator):
+        self._client = coordinator.client
+        serial = self._client.serial or "local"
+        self._attr_unique_id = f"{hub_slug(self._client.serial)}_connectivity"
+        # Named per controller, not per device: an HA instance holds one entry
+        # per object, and "Connection" alone would be five identical names.
+        self._attr_name = f"Server {serial} connection"
+        self.entity_id = ENTITY_ID_FORMAT.format(f"{serial}_connection")
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, hub_slug(self._client.serial))}
+        )
+
+    @property
+    def is_on(self) -> bool:
+        return self._client.connected
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        self._client.set_connection_callback(self._handle_connection)
+
+    async def async_will_remove_from_hass(self) -> None:
+        self._client.set_connection_callback(None)
+        await super().async_will_remove_from_hass()
+
+    @callback
+    def _handle_connection(self, connected: bool) -> None:
+        self.async_write_ha_state()
