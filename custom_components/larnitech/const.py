@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 12:45
+# Updated: 2026-09-10 10:20
 """Constants for the Larnitech integration."""
 
 from homeassistant.util import slugify
@@ -202,6 +202,7 @@ HANDLED_TYPES = {
     "valve",
     "vent",
     "speaker",
+    "script",
 }
 
 

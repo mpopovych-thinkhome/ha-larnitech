@@ -1,10 +1,18 @@
-# Updated: 2026-08-27 15:39
+# Updated: 2026-09-10 10:20
 """Larnitech lamp sub-types mapped to switch (socket / pump / closing-switch),
 plus `light-scheme` (all `ls-type` variants — the API exposes the same
 `status.state` on/off shape regardless of variant; behavioral differences
 between Scheme/Scene/Scene+/Scheme Rev/master-slave live on the controller,
 not the protocol). `ls-type=2` ("activate-only") ignores `turn_off` on the
-controller side; HA still shows the control, it's just a no-op there."""
+controller side; HA still shows the control, it's just a no-op there.
+
+Also `script` — an Imerel script instance, which carries a real on/off
+`status.state` rather than being a one-shot trigger, so a switch is the
+honest control for it. Scripts are typically configured as mutually
+exclusive groups (house modes, seasons): switching one on switches its
+siblings off, and the controller does that itself — confirmed live
+2026-09-10, turning `Midseason` on turned `Summer` off unasked. Nothing to
+model here, the resulting states arrive as ordinary events."""
 from __future__ import annotations
 
 from homeassistant.components.switch import (
@@ -19,7 +27,7 @@ from .entity import LarnitechEntity
 
 
 def _claims(device: dict) -> bool:
-    if device.get("type") == "light-scheme":
+    if device.get("type") in ("light-scheme", "script"):
         return True
     return device.get("type") == "lamp" and lamp_platform(device) == "switch"
 
