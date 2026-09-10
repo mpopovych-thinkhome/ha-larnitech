@@ -1,4 +1,4 @@
-# Updated: 2026-08-27 15:25
+# Updated: 2026-09-10 18:05
 """Larnitech API2 WebSocket client: persistent connection, push + request/response."""
 from __future__ import annotations
 
@@ -67,6 +67,7 @@ class LarnitechClient:
         self._on_event = None
         self._on_resync = None
         self._on_auth_error = None
+        self._on_connection = None
         self._auth_failed = False
 
     @property
@@ -82,6 +83,21 @@ class LarnitechClient:
     def set_resync_callback(self, callback) -> None:
         """Sync callback() fired on every (re)connect to pull a full snapshot."""
         self._on_resync = callback
+
+    def set_connection_callback(self, callback) -> None:
+        """Sync callback(connected: bool) fired when the socket comes up
+        (after authorize + subscribe) and when it goes down — including every
+        reconnect cycle. Pass None to detach."""
+        self._on_connection = callback
+
+    @property
+    def connected(self) -> bool:
+        """Whether the WebSocket is open and subscribed right now."""
+        return self._connected.is_set()
+
+    def _note_connection(self, connected: bool) -> None:
+        if self._on_connection is not None:
+            self._on_connection(connected)
 
     def set_auth_error_callback(self, callback) -> None:
         """Sync callback(rejected: bool) fired when the controller starts or
@@ -122,6 +138,7 @@ class LarnitechClient:
                 # status=detailed makes events arrive decoded (JSON), not hex.
                 await self._send({"request": "status-subscribe", "status": "detailed"})
                 self._connected.set()
+                self._note_connection(True)
                 backoff = 1
                 self._clear_auth_failure()
                 if self._on_resync is not None:
@@ -139,7 +156,10 @@ class LarnitechClient:
             except Exception:  # noqa: BLE001 - supervisor must never die silently
                 _LOGGER.exception("Larnitech listener crashed")
             finally:
+                was_connected = self._connected.is_set()
                 self._connected.clear()
+                if was_connected:
+                    self._note_connection(False)
                 await self._safe_close()
             if not self._closing:
                 await asyncio.sleep(backoff)
