@@ -1,4 +1,4 @@
-# Updated: 2026-09-10 10:20
+# Updated: 2026-09-10 17:35
 """Larnitech lamp sub-types mapped to switch (socket / pump / closing-switch),
 plus `light-scheme` (all `ls-type` variants — the API exposes the same
 `status.state` on/off shape regardless of variant; behavioral differences
@@ -6,13 +6,15 @@ between Scheme/Scene/Scene+/Scheme Rev/master-slave live on the controller,
 not the protocol). `ls-type=2` ("activate-only") ignores `turn_off` on the
 controller side; HA still shows the control, it's just a no-op there.
 
-Also `script` — an Imerel script instance, which carries a real on/off
-`status.state` rather than being a one-shot trigger, so a switch is the
-honest control for it. Scripts are typically configured as mutually
-exclusive groups (house modes, seasons): switching one on switches its
-siblings off, and the controller does that itself — confirmed live
-2026-09-10, turning `Midseason` on turned `Summer` off unasked. Nothing to
-model here, the resulting states arrive as ordinary events."""
+Also `script` — an Imerel script instance, which behaves like a `lamp`: a
+real on/off `status.state` plus the same `auto-state` (auto mode) flag,
+rather than being a one-shot trigger, so a switch is the honest control.
+
+Whether switching one script on switches others off is per-object
+configuration, not a property of the type — the demo case happens to wire
+its house modes and seasons as mutually exclusive groups. Either way the
+controller does it itself and the siblings' new states arrive as ordinary
+events, so there is nothing to model here."""
 from __future__ import annotations
 
 from homeassistant.components.switch import (
