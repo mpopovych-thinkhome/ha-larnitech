@@ -1,4 +1,4 @@
-# Updated: 2026-08-28 16:16
+# Updated: 2026-09-15 18:05
 """Shared base entity for Larnitech."""
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import asyncio
 import logging
 
 from homeassistant.core import callback
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -156,16 +157,24 @@ class LarnitechEntity(CoordinatorEntity):
         return self.status.get("state") == "on"
 
     async def async_write_status(self, status: dict) -> None:
+        # Read-only refuses the call rather than swallowing it. Every write
+        # here runs inside a service call the user triggered, so raising puts
+        # the reason where the action happened instead of in a notification
+        # somewhere else — and it is the only way to say it in the user's own
+        # language: HA's translation schema has no section for notification
+        # text, while `exceptions` is exactly this. `ServiceValidationError`
+        # is the documented class for "cannot be done in this configuration"
+        # and HA logs it as a plain message, without a traceback.
         if self.coordinator.read_only:
-            await self.coordinator.async_notify_read_only()
-        else:
-            await self.coordinator.client.async_set_status(self._addr, status)
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="read_only_write_blocked",
+                translation_placeholders={"title": self.coordinator.entry.title},
+            )
+        await self.coordinator.client.async_set_status(self._addr, status)
         # Fire-and-forget: verifying is a courtesy, not part of the write
         # itself — don't make the HA service call (and the UI spinner) wait
         # out the delay. See `_WRITE_VERIFY_DELAY` for why the delay exists.
-        # In `read_only` mode there is no actual write above, but a control
-        # action from HA still ends the same way after the same delay: the
-        # entity is re-read and snaps back to Larnitech's real status.
         self.hass.async_create_task(self._async_verify_write())
 
     async def _async_verify_write(self) -> None:

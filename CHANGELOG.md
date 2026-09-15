@@ -5,6 +5,46 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0-beta] - 2026-09-15
+
+Home Assistant's own validation (`hassfest`) rejected the integration, and
+both reasons turned out to be real rather than cosmetic. Fixing the first
+one changes option values users may have written automations against.
+
+### Changed
+- **BREAKING: fan speed, louvre position and preset values are now slugs.**
+  Home Assistant requires an option value to match `[a-z0-9-_]+`; ours were
+  human-readable labels, which is why `icons.json` failed validation. The
+  wording in the interface is unchanged — it now comes from the translation
+  files (en/ru/lt/uk) instead of being the value itself — but **anything
+  matching on the old text stops matching**, including automation
+  conditions, scripts and scenes:
+
+  | Where | Before | Now |
+  |---|---|---|
+  | `AC` / `conditioner` fan speed | `Auto`, `1st Speed`, `2nd Speed`, `3rd Speed` | `auto`, `speed_1`, `speed_2`, `speed_3` |
+  | `AC` / `conditioner` vertical swing | `Auto`, `Top`, `Top-Center`, `Center`, `Center-Bottom`, `Bottom`, `Swing` | `auto`, `top`, `top_center`, `center`, `center_bottom`, `bottom`, `swing` |
+  | `AC` / `conditioner` horizontal swing | `Left`, `Left-Center`, `Center`, `Center-Right`, `Right`, `Sides (Low Angle)`, `Sides (High Angle)`, `Sides To Center` | `left`, `left_center`, `center`, `center_right`, `right`, `sides_low_angle`, `sides_high_angle`, `sides_to_center` |
+  | `fancoil` / `vent` fan speed | `0%` … `100%` | `percent_0` … `percent_100` |
+  | `valve-heating` / `fancoil` / `vent` preset | `Manual`, `Always-off` | `manual`, `always_off` |
+
+  Presets named on the Larnitech side (Eco, Comfort, …) are untouched: they
+  pass through as the controller reports them, as before.
+- **BREAKING: a write to a read-only object now fails instead of being
+  swallowed.** It used to complete successfully and leave a notification in
+  the drawer; it now raises, so the reason appears where the action was
+  taken — and **a script or automation writing to a read-only object stops
+  at that step** rather than carrying on as if it had worked.
+
+  The old notification text lived in a `notification` section of
+  `strings.json`, which is not part of Home Assistant's translation schema
+  and is the second reason validation failed. There is no schema section for
+  notification text at all, and `persistent_notification` takes only
+  pre-rendered strings — so a translated notification is not possible.
+  `exceptions` is, and it is what this case is for: every one of these
+  writes happens inside a service call the user triggered. The message stays
+  translated in all four languages.
+
 ## [0.9.7-beta] - 2026-09-10
 
 ### Added

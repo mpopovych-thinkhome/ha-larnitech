@@ -66,6 +66,25 @@ say what each pair becomes in Home Assistant and what you can do with it.
 | `virtual/ventilation` | `climate` | HRV / supply ventilation unit (Komfovent and similar). Speed preset (Auto / Low / Middle / High); current and target temperature appear only if the widget has temperature sensors linked on the Larnitech side. |
 | `valve` | `valve` | Main shut-off valve — open and close |
 
+#### Option values changed in 1.0.0-beta
+
+Fan speed, louvre position and preset are still shown with the same wording
+in the interface, but the value behind each one is now a slug, as Home
+Assistant requires. **Automations and scripts that match on the old text
+stop matching** — a `fan_mode: "1st Speed"` condition, or
+`preset_mode: "Always-off"` in a service call, has to be updated:
+
+| Where | Before | Now |
+|---|---|---|
+| `AC` / `conditioner` fan speed | `Auto`, `1st Speed`, `2nd Speed`, `3rd Speed` | `auto`, `speed_1`, `speed_2`, `speed_3` |
+| `AC` / `conditioner` vertical swing | `Auto`, `Top`, `Top-Center`, `Center`, `Center-Bottom`, `Bottom`, `Swing` | `auto`, `top`, `top_center`, `center`, `center_bottom`, `bottom`, `swing` |
+| `AC` / `conditioner` horizontal swing | `Left`, `Left-Center`, `Center`, `Center-Right`, `Right`, `Sides (Low Angle)`, `Sides (High Angle)`, `Sides To Center` | `left`, `left_center`, `center`, `center_right`, `right`, `sides_low_angle`, `sides_high_angle`, `sides_to_center` |
+| `fancoil` / `vent` fan speed | `0%` … `100%` | `percent_0` … `percent_100` |
+| `valve-heating` / `fancoil` / `vent` preset | `Manual`, `Always-off` | `manual`, `always_off` |
+
+Presets named on the Larnitech side (Eco, Comfort, …) are unaffected — they
+pass through exactly as the controller reports them.
+
 ### Covers
 
 | type/sub-type | HA domain | What you get |
@@ -225,7 +244,7 @@ integration.
 | **Auto-update names from Larnitech** | Keeps device and entity names matching what the controller calls them. Anything you renamed by hand in Home Assistant is left alone. | on |
 | **Use Larnitech rooms** | Creates Home Assistant areas matching the rooms in Larnitech and puts each device in the right one. | on |
 | **Auto-update device room placement** | Moves a device to a different area when its room changes in Larnitech. Requires the option above, and overrides an area you set by hand. | on |
-| **Read-only mode** | Never sends anything to the controller. Controlling an entity from Home Assistant does nothing — it immediately snaps back to the controller's real state. Useful while testing, or on an installation you must not touch. | off |
+| **Read-only mode** | Never sends anything to the controller. Controlling an entity from Home Assistant is refused with an error naming the object, so a script or automation writing to it stops there instead of appearing to succeed. Useful while testing, or on an installation you must not touch. | off |
 | **Append the Larnitech address to entity names** | Adds the controller address to entity names, e.g. `Temperature (1:98)`, making it easy to match an entity back to the widget in Larnitech. Can be switched on and off freely; entities you renamed by hand keep your name. | off |
 | **Poll interval** | How often Home Assistant re-reads everything from the controller as a safety net, in seconds (30-290). Updates normally arrive instantly by push — this only catches anything missed, and keeps the connection alive. | 120 |
 

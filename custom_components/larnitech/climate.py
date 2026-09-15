@@ -1,4 +1,4 @@
-# Updated: 2026-08-27 15:39
+# Updated: 2026-09-15 17:24
 """Larnitech climate: valve-heating (+warm-floor), fancoil, climate-control, AC/conditioner.
 
 Read keys are confirmed from live stand payloads. Write commands (state / mode /
@@ -64,16 +64,24 @@ _MODE_TO_ACTION = {
 # preset list, but `status.automation` reports them the same way a named
 # preset would — both must be injected into `preset_modes`, or a device in
 # either mode gets a preset_mode outside its own declared preset list (same
-# class of bug as the `fan_mode` one). MANUAL is a synthetic label (Larnitech
-# itself has no name for this state — the key is simply absent), and the
-# "Always-off" shown in HA is deliberately capitalized for readability next
-# to Comfort/Eco — the raw wire value (read and written) is lowercase
-# `ALWAYS_OFF_RAW`. `conditioner`/`AC`/`climate-control` do NOT have this
-# scheme (confirmed: `conditioner` has no `automation`/`automations` at all)
-# — don't extend it to `LarnitechClimateBase` generally.
-MANUAL = "Manual"
+# class of bug as the `fan_mode` one). MANUAL is synthetic (Larnitech itself
+# has no name for this state — the key is simply absent).
+#
+# Both are option SLUGS, not display text: HA requires an option value to
+# match `[a-z0-9-_]+`, and the readable wording ("Manual", "Always off") now
+# comes from `strings.json` / `translations/*.json` under
+# `entity.climate.<key>.state_attributes.preset_mode.state`. The named
+# presets alongside them (Eco/Comfort/...) are whatever the controller calls
+# them and pass through untranslated — they are user-defined per object, so
+# there is nothing to translate them against.
+#
+# `ALWAYS_OFF_RAW` stays the wire value (hyphen, read and written); only the
+# slug differs. `conditioner`/`AC`/`climate-control` do NOT have this scheme
+# (confirmed: `conditioner` has no `automation`/`automations` at all) —
+# don't extend it to `LarnitechClimateBase` generally.
+MANUAL = "manual"
 ALWAYS_OFF_RAW = "always-off"
-ALWAYS_OFF = "Always-off"
+ALWAYS_OFF = "always_off"
 
 # Turning a preset-driven type off from HA takes TWO writes — clear
 # `automation`, then set `state: "off"` — and they must not be back to back.
@@ -117,20 +125,45 @@ _MODE_BITS = [
     (4, HVACMode.AUTO),
 ]
 
+# Every option value below is a SLUG, because HA requires one to match
+# `[a-z0-9-_]+`; the readable wording lives in `strings.json` /
+# `translations/*.json` under
+# `entity.climate.<key>.state_attributes.<attribute>.state`.
+#
 # Fan speeds: the WIRE vocabulary is a fixed set of names, NOT the numbered
 # scheme the masks/UI describe — probed exhaustively against both live
 # devices 2026-08-14, `status-set` rejects anything else with
 # "set-status has invalid parameter" (including bare numbers and "silent").
 # So bits 0-3 are addressable and bits 4-6 (4th/5th speed, silent mode) have
 # no known wire value — they're offered by neither list until one turns up.
-_FAN_WIRE = ["auto", "low", "middle", "high"]
-_FAN_LABELS = ["Auto", "1st Speed", "2nd Speed", "3rd Speed"]
+#
+# One dict, wire value -> slug, ordered by mask bit (bit 0 = first entry):
+# it is the only place the two vocabularies are tied together, and both
+# directions of the write path derive from it. Nothing compares against
+# display text anywhere.
+_FAN_WIRE_TO_SLUG = {
+    "auto": "auto",
+    "low": "speed_1",
+    "middle": "speed_2",
+    "high": "speed_3",
+}
+_FAN_SLUG_TO_WIRE = {slug: wire for wire, slug in _FAN_WIRE_TO_SLUG.items()}
 
+# Vane positions need no such pair: the controller's value IS the index into
+# these lists, so the list is the mapping.
 _VANE_HOR_MODES = [
-    "Left", "Left-Center", "Center", "Center-Right", "Right",
-    "Sides (Low Angle)", "Sides (High Angle)", "Sides To Center",
+    "left", "left_center", "center", "center_right", "right",
+    "sides_low_angle", "sides_high_angle", "sides_to_center",
 ]
-_VANE_VER_MODES = ["Auto", "Top", "Top-Center", "Center", "Center-Bottom", "Bottom", "Swing"]
+_VANE_VER_MODES = ["auto", "top", "top_center", "center", "center_bottom", "bottom", "swing"]
+
+# `fancoil` and `vent` both report fan speed as a 0-100 percentage and offer
+# it in 10% steps. Their entity classes keep their own `_attr_fan_modes`
+# (see each class docstring — deliberately not shared), but the percent <->
+# slug mapping itself is defined once: it is load-bearing on the write path,
+# and two copies of it could drift into two different wire values.
+_FAN_PERCENT_TO_SLUG = {pct: f"percent_{pct}" for pct in range(0, 101, 10)}
+_FAN_SLUG_TO_PERCENT = {slug: pct for pct, slug in _FAN_PERCENT_TO_SLUG.items()}
 
 
 def _mask_filter(bits: int, table: list[str]) -> list[str]:
@@ -338,14 +371,15 @@ class LarnitechFancoil(_ManualAlwaysOffPresets, LarnitechClimateBase):
     """Fan speed (`status.fan`) is always a 0-100 percent float — confirmed
     live 2026-08-14 on both a percentage unit and one explicitly configured
     as 3-speed ("Fancoil 3sp"), so there's no stepped-vs-percentage branch to
-    handle. Exposed as 10%-step fan_modes ("0%".."100%"); a raw reading is
-    rounded to the nearest step (33 -> "30%", 66 -> "70%")."""
+    handle. Exposed as 10%-step fan_modes (`percent_0`..`percent_100`); a raw
+    reading is rounded to the nearest step (33 -> `percent_30`, 66 ->
+    `percent_70`)."""
 
     # Keys the icons.json lookup for the Manual / Always-off preset icons and
     # the 10%-step fan-speed icons.
     _attr_translation_key = "fancoil"
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.COOL]
-    _attr_fan_modes = [f"{pct}%" for pct in range(0, 101, 10)]
+    _attr_fan_modes = list(_FAN_PERCENT_TO_SLUG.values())
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
@@ -383,7 +417,7 @@ class LarnitechFancoil(_ManualAlwaysOffPresets, LarnitechClimateBase):
         fan = self.status.get("fan")
         if isinstance(fan, (int, float)):
             step = min(100, max(0, round(fan / 10) * 10))
-            return f"{step}%"
+            return _FAN_PERCENT_TO_SLUG[step]
         if self.is_state_on:
             self._warn_once(
                 "fan",
@@ -399,7 +433,7 @@ class LarnitechFancoil(_ManualAlwaysOffPresets, LarnitechClimateBase):
             await self.async_write_status({"target": round(temp)})
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
-        await self.async_write_status({"fan": int(fan_mode.rstrip("%"))})
+        await self.async_write_status({"fan": _FAN_SLUG_TO_PERCENT[fan_mode]})
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         if hvac_mode != HVACMode.OFF:
@@ -600,8 +634,9 @@ class _LarnitechACBase(LarnitechClimateBase):
 
     @property
     def fan_modes(self) -> list[str] | None:
-        # Labels are what HA shows; the wire value is the same index in _FAN_WIRE.
-        return _mask_filter(self._fan_bits(), _FAN_LABELS) or None
+        # Slugs are what HA offers; `_FAN_WIRE_TO_SLUG` is ordered by mask bit,
+        # so its values line up with the bit positions `_mask_filter` walks.
+        return _mask_filter(self._fan_bits(), list(_FAN_WIRE_TO_SLUG.values())) or None
 
     @property
     def swing_horizontal_modes(self) -> list[str] | None:
@@ -663,15 +698,15 @@ class _LarnitechACBase(LarnitechClimateBase):
     @property
     def fan_mode(self) -> str | None:
         fan = self.status.get("fan")
-        if isinstance(fan, str) and fan in _FAN_WIRE:
-            return _FAN_LABELS[_FAN_WIRE.index(fan)]
+        if isinstance(fan, str) and fan in _FAN_WIRE_TO_SLUG:
+            return _FAN_WIRE_TO_SLUG[fan]
         if self.is_state_on and fan is not None:
             self._warn_once(
                 "fan_mode",
                 "Larnitech %s: unrecognized 'fan' value %r, expected one of %s (status=%s)",
                 self.entity_id,
                 fan,
-                _FAN_WIRE,
+                list(_FAN_WIRE_TO_SLUG),
                 self.status,
             )
         return None
@@ -700,7 +735,7 @@ class _LarnitechACBase(LarnitechClimateBase):
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         # The controller only accepts the wire names, never an index —
         # a number is rejected with "set-status has invalid parameter".
-        await self.async_write_status({"fan": _FAN_WIRE[_FAN_LABELS.index(fan_mode)]})
+        await self.async_write_status({"fan": _FAN_SLUG_TO_WIRE[fan_mode]})
 
     async def async_set_swing_horizontal_mode(self, swing_horizontal_mode: str) -> None:
         idx = _VANE_HOR_MODES.index(swing_horizontal_mode)
@@ -862,8 +897,11 @@ class LarnitechVent(LarnitechClimateBase):
     separate writable `number` entity (`number.py`).
 
     `status.fan` (0-100%) is exposed as `fan_mode` in 10%-step presets
-    (`"0%"`..`"100%"`), same shape as `fancoil`'s fan_modes but duplicated
-    rather than shared — a few strings, not worth an abstraction.
+    (`percent_0`..`percent_100`), same shape as `fancoil`'s fan_modes. The
+    entity classes stay separate, as before; only the percent <-> slug
+    mapping behind them is shared (`_FAN_PERCENT_TO_SLUG`), because it now
+    decides what gets written to the controller rather than just what is
+    displayed.
 
     hvac_mode is on/off only (`vent` never heats/cools), but follows the
     same "named preset locks the mode" rule as `valve-heating`: while a
@@ -876,7 +914,7 @@ class LarnitechVent(LarnitechClimateBase):
 
     _attr_translation_key = "vent"
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.FAN_ONLY]
-    _attr_fan_modes = [f"{pct}%" for pct in range(0, 101, 10)]
+    _attr_fan_modes = list(_FAN_PERCENT_TO_SLUG.values())
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
@@ -943,7 +981,7 @@ class LarnitechVent(LarnitechClimateBase):
         fan = self.status.get("fan")
         if isinstance(fan, (int, float)):
             step = min(100, max(0, round(fan / 10) * 10))
-            return f"{step}%"
+            return _FAN_PERCENT_TO_SLUG[step]
         if self.is_state_on:
             self._warn_once(
                 "fan",
@@ -954,7 +992,7 @@ class LarnitechVent(LarnitechClimateBase):
         return None
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
-        await self.async_write_status({"fan": int(fan_mode.rstrip("%"))})
+        await self.async_write_status({"fan": _FAN_SLUG_TO_PERCENT[fan_mode]})
 
     @property
     def preset_modes(self) -> list[str]:
