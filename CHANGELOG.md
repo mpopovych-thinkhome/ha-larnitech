@@ -5,6 +5,38 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0-beta] - 2026-09-15
+
+Home Assistant's own validation (`hassfest`) rejected the integration, and
+both reasons turned out to be real rather than cosmetic. Fixing the first
+one changes option values users may have written automations against.
+
+### Changed
+- **BREAKING: fan speed, louvre position and preset values are now slugs.**
+  Home Assistant requires an option value to match `[a-z0-9-_]+`; ours were
+  human-readable labels, which is why `icons.json` failed validation. The
+  wording in the interface is unchanged — it now comes from the translation
+  files (en/ru/lt/uk) instead of being the value itself — but **anything
+  matching on the old text stops matching**, including automation
+  conditions, scripts and scenes:
+
+  | Where | Before | Now |
+  |---|---|---|
+  | `AC` / `conditioner` fan speed | `Auto`, `1st Speed`, `2nd Speed`, `3rd Speed` | `auto`, `speed_1`, `speed_2`, `speed_3` |
+  | `AC` / `conditioner` vertical swing | `Auto`, `Top`, `Top-Center`, `Center`, `Center-Bottom`, `Bottom`, `Swing` | `auto`, `top`, `top_center`, `center`, `center_bottom`, `bottom`, `swing` |
+  | `AC` / `conditioner` horizontal swing | `Left`, `Left-Center`, `Center`, `Center-Right`, `Right`, `Sides (Low Angle)`, `Sides (High Angle)`, `Sides To Center` | `left`, `left_center`, `center`, `center_right`, `right`, `sides_low_angle`, `sides_high_angle`, `sides_to_center` |
+  | `fancoil` / `vent` fan speed | `0%` … `100%` | `percent_0` … `percent_100` |
+  | `valve-heating` / `fancoil` / `vent` preset | `Manual`, `Always-off` | `manual`, `always_off` |
+
+  Presets named on the Larnitech side (Eco, Comfort, …) are untouched: they
+  pass through as the controller reports them, as before.
+- **The read-only notification is no longer translated.** Its text lived in
+  a `notification` section of `strings.json`, which is not part of Home
+  Assistant's translation schema and is why validation failed. The
+  notification itself stays — it answers a click that did nothing, so a
+  repair issue (permanent, for a deliberately configured option) would be
+  the wrong shape — but its wording is built in code and is English only.
+
 ## [0.9.7-beta] - 2026-09-10
 
 ### Added

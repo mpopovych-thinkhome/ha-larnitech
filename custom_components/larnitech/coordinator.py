@@ -1,4 +1,4 @@
-# Updated: 2026-09-03 14:15
+# Updated: 2026-09-15 17:24
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -15,7 +15,6 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.components import persistent_notification as pn
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers import translation
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
@@ -149,9 +148,6 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         # Mass-removal guard: latched state + the live set it would act on.
         self._mass_latched = False
         self._mass_missing: list[str] = []
-        # Cached (title, message) for the read-only-write notice — resolved
-        # once per coordinator on first use, not on every blocked write.
-        self._read_only_notice: tuple[str, str] | None = None
         # False until the platforms finish their first pass, so entity
         # creation logs at DEBUG during setup (every entity would log) and at
         # INFO afterwards, where it means a device genuinely appeared.
@@ -580,31 +576,27 @@ class LarnitechCoordinator(DataUpdateCoordinator):
     async def async_notify_read_only(self) -> None:
         """Persistent notification (HA's own notification drawer, not a
         mobile push) telling the user a write was skipped because this
-        object is read-only. Title/message are read through HA's own
-        translation loader (`strings.json`/`translations/*.json`, `notification`
-        category) so the text follows the instance's configured language
-        instead of being hardcoded to one — cached on the coordinator after
-        the first call, since every read-only click would otherwise re-fetch
-        translations. Uses a stable notification_id per entry so repeated
-        blocked writes update the same notification instead of stacking."""
-        if self._read_only_notice is None:
-            translations = await translation.async_get_translations(
-                self.hass, self.hass.config.language, "notification", {DOMAIN}
-            )
-            prefix = f"component.{DOMAIN}.notification.read_only_write_blocked"
-            self._read_only_notice = (
-                translations.get(f"{prefix}.title", "Larnitech: read-only object"),
-                translations.get(
-                    f"{prefix}.message",
-                    '"{title}" is in read-only mode — status changes from Home '
-                    "Assistant are not sent to Larnitech.",
-                ),
-            )
-        title, message = self._read_only_notice
+        object is read-only.
+
+        Deliberately NOT a repair issue, unlike `auth_rejected` and the
+        mass-removal prompt above: those report a fault the integration ran
+        into, which stays true until something is fixed. Read-only is the
+        opposite — a per-entry option the user set on purpose — and this
+        fires as the immediate answer to one click that did nothing. A
+        standing entry in Repairs for a setting behaving exactly as
+        configured would be permanent noise on every read-only object.
+
+        The wording is built here rather than translated: HA's translation
+        schema has no section for notification strings (hassfest rejects a
+        `notification` one), and every valid section means something else.
+
+        A stable notification_id per entry keeps repeated blocked writes
+        updating the same notification instead of stacking."""
         pn.async_create(
             self.hass,
-            message.format(title=self.entry.title),
-            title=title,
+            f'"{self.entry.title}" is in read-only mode — status changes from '
+            "Home Assistant are not sent to Larnitech.",
+            title="Larnitech: read-only object",
             notification_id=f"{DOMAIN}_{self.entry.entry_id}_read_only",
         )
 

@@ -79,29 +79,139 @@
       "ac": {
         "state_attributes": {
           "swing_mode": {
-            "name": "Вертикальные жалюзи"
+            "name": "Вертикальные жалюзи",
+            "state": {
+              "auto": "Авто",
+              "top": "Вверх",
+              "top_center": "Вверх-центр",
+              "center": "Центр",
+              "center_bottom": "Центр-вниз",
+              "bottom": "Вниз",
+              "swing": "Качание"
+            }
           },
           "swing_horizontal_mode": {
-            "name": "Горизонтальные жалюзи"
+            "name": "Горизонтальные жалюзи",
+            "state": {
+              "left": "Влево",
+              "left_center": "Влево-центр",
+              "center": "Центр",
+              "center_right": "Центр-вправо",
+              "right": "Вправо",
+              "sides_low_angle": "По сторонам (малый угол)",
+              "sides_high_angle": "По сторонам (большой угол)",
+              "sides_to_center": "По сторонам к центру"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "auto": "Авто",
+              "speed_1": "1-я скорость",
+              "speed_2": "2-я скорость",
+              "speed_3": "3-я скорость",
+              "silent": "Тихий"
+            }
           }
         }
       },
       "conditioner": {
         "state_attributes": {
           "swing_mode": {
-            "name": "Вертикальные жалюзи"
+            "name": "Вертикальные жалюзи",
+            "state": {
+              "auto": "Авто",
+              "top": "Вверх",
+              "top_center": "Вверх-центр",
+              "center": "Центр",
+              "center_bottom": "Центр-вниз",
+              "bottom": "Вниз",
+              "swing": "Качание"
+            }
           },
           "swing_horizontal_mode": {
-            "name": "Горизонтальные жалюзи"
+            "name": "Горизонтальные жалюзи",
+            "state": {
+              "left": "Влево",
+              "left_center": "Влево-центр",
+              "center": "Центр",
+              "center_right": "Центр-вправо",
+              "right": "Вправо",
+              "sides_low_angle": "По сторонам (малый угол)",
+              "sides_high_angle": "По сторонам (большой угол)",
+              "sides_to_center": "По сторонам к центру"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "auto": "Авто",
+              "speed_1": "1-я скорость",
+              "speed_2": "2-я скорость",
+              "speed_3": "3-я скорость",
+              "silent": "Тихий"
+            }
+          }
+        }
+      },
+      "fancoil": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Ручной",
+              "always_off": "Всегда выкл."
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "percent_0": "0%",
+              "percent_10": "10%",
+              "percent_20": "20%",
+              "percent_30": "30%",
+              "percent_40": "40%",
+              "percent_50": "50%",
+              "percent_60": "60%",
+              "percent_70": "70%",
+              "percent_80": "80%",
+              "percent_90": "90%",
+              "percent_100": "100%"
+            }
+          }
+        }
+      },
+      "vent": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Ручной",
+              "always_off": "Всегда выкл."
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "percent_0": "0%",
+              "percent_10": "10%",
+              "percent_20": "20%",
+              "percent_30": "30%",
+              "percent_40": "40%",
+              "percent_50": "50%",
+              "percent_60": "60%",
+              "percent_70": "70%",
+              "percent_80": "80%",
+              "percent_90": "90%",
+              "percent_100": "100%"
+            }
+          }
+        }
+      },
+      "valve_heating": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Ручной",
+              "always_off": "Всегда выкл."
+            }
           }
         }
       }
-    }
-  },
-  "notification": {
-    "read_only_write_blocked": {
-      "title": "Larnitech: объект в режиме read-only",
-      "message": "«{title}» находится в режиме read-only — изменение статусов из Home Assistant не отправляется в Larnitech."
     }
   },
   "issues": {

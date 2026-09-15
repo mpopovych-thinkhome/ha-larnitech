@@ -79,29 +79,139 @@
       "ac": {
         "state_attributes": {
           "swing_mode": {
-            "name": "Vertikalios menteles"
+            "name": "Vertikalios menteles",
+            "state": {
+              "auto": "Automatinis",
+              "top": "Viršus",
+              "top_center": "Viršus-centras",
+              "center": "Centras",
+              "center_bottom": "Centras-apačia",
+              "bottom": "Apačia",
+              "swing": "Svyravimas"
+            }
           },
           "swing_horizontal_mode": {
-            "name": "Horizontalios menteles"
+            "name": "Horizontalios menteles",
+            "state": {
+              "left": "Kairė",
+              "left_center": "Kairė-centras",
+              "center": "Centras",
+              "center_right": "Centras-dešinė",
+              "right": "Dešinė",
+              "sides_low_angle": "Į šonus (mažas kampas)",
+              "sides_high_angle": "Į šonus (didelis kampas)",
+              "sides_to_center": "Iš šonų į centrą"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "auto": "Automatinis",
+              "speed_1": "1-as greitis",
+              "speed_2": "2-as greitis",
+              "speed_3": "3-as greitis",
+              "silent": "Tylusis"
+            }
           }
         }
       },
       "conditioner": {
         "state_attributes": {
           "swing_mode": {
-            "name": "Vertikalios menteles"
+            "name": "Vertikalios menteles",
+            "state": {
+              "auto": "Automatinis",
+              "top": "Viršus",
+              "top_center": "Viršus-centras",
+              "center": "Centras",
+              "center_bottom": "Centras-apačia",
+              "bottom": "Apačia",
+              "swing": "Svyravimas"
+            }
           },
           "swing_horizontal_mode": {
-            "name": "Horizontalios menteles"
+            "name": "Horizontalios menteles",
+            "state": {
+              "left": "Kairė",
+              "left_center": "Kairė-centras",
+              "center": "Centras",
+              "center_right": "Centras-dešinė",
+              "right": "Dešinė",
+              "sides_low_angle": "Į šonus (mažas kampas)",
+              "sides_high_angle": "Į šonus (didelis kampas)",
+              "sides_to_center": "Iš šonų į centrą"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "auto": "Automatinis",
+              "speed_1": "1-as greitis",
+              "speed_2": "2-as greitis",
+              "speed_3": "3-as greitis",
+              "silent": "Tylusis"
+            }
+          }
+        }
+      },
+      "fancoil": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Rankinis",
+              "always_off": "Visada išjungta"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "percent_0": "0%",
+              "percent_10": "10%",
+              "percent_20": "20%",
+              "percent_30": "30%",
+              "percent_40": "40%",
+              "percent_50": "50%",
+              "percent_60": "60%",
+              "percent_70": "70%",
+              "percent_80": "80%",
+              "percent_90": "90%",
+              "percent_100": "100%"
+            }
+          }
+        }
+      },
+      "vent": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Rankinis",
+              "always_off": "Visada išjungta"
+            }
+          },
+          "fan_mode": {
+            "state": {
+              "percent_0": "0%",
+              "percent_10": "10%",
+              "percent_20": "20%",
+              "percent_30": "30%",
+              "percent_40": "40%",
+              "percent_50": "50%",
+              "percent_60": "60%",
+              "percent_70": "70%",
+              "percent_80": "80%",
+              "percent_90": "90%",
+              "percent_100": "100%"
+            }
+          }
+        }
+      },
+      "valve_heating": {
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "manual": "Rankinis",
+              "always_off": "Visada išjungta"
+            }
           }
         }
       }
-    }
-  },
-  "notification": {
-    "read_only_write_blocked": {
-      "title": "Larnitech: tik skaitymo objektas",
-      "message": "„{title}“ veikia tik skaitymo režimu — būsenų pakeitimai iš Home Assistant nesiunčiami į Larnitech."
     }
   },
   "issues": {

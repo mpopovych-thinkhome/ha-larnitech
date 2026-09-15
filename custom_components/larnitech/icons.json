@@ -19,24 +19,24 @@
           "preset_mode": {
             "default": "mdi:tune-variant",
             "state": {
-              "Manual": "mdi:hand-back-right",
-              "Always-off": "mdi:cancel"
+              "manual": "mdi:hand-back-right",
+              "always_off": "mdi:cancel"
             }
           },
           "fan_mode": {
             "default": "mdi:fan",
             "state": {
-              "0%": "mdi:fan-off",
-              "10%": "mdi:fan-speed-1",
-              "20%": "mdi:fan-speed-1",
-              "30%": "mdi:fan-speed-1",
-              "40%": "mdi:fan-speed-2",
-              "50%": "mdi:fan-speed-2",
-              "60%": "mdi:fan-speed-2",
-              "70%": "mdi:fan-speed-3",
-              "80%": "mdi:fan-speed-3",
-              "90%": "mdi:fan-speed-3",
-              "100%": "mdi:fan-speed-3"
+              "percent_0": "mdi:fan-off",
+              "percent_10": "mdi:fan-speed-1",
+              "percent_20": "mdi:fan-speed-1",
+              "percent_30": "mdi:fan-speed-1",
+              "percent_40": "mdi:fan-speed-2",
+              "percent_50": "mdi:fan-speed-2",
+              "percent_60": "mdi:fan-speed-2",
+              "percent_70": "mdi:fan-speed-3",
+              "percent_80": "mdi:fan-speed-3",
+              "percent_90": "mdi:fan-speed-3",
+              "percent_100": "mdi:fan-speed-3"
             }
           }
         }
@@ -46,36 +46,36 @@
           "fan_mode": {
             "default": "mdi:fan",
             "state": {
-              "Auto": "mdi:fan-auto",
-              "1st Speed": "mdi:fan-speed-1",
-              "2nd Speed": "mdi:fan-speed-2",
-              "3rd Speed": "mdi:fan-speed-3",
-              "Silent": "mdi:weather-night"
+              "auto": "mdi:fan-auto",
+              "speed_1": "mdi:fan-speed-1",
+              "speed_2": "mdi:fan-speed-2",
+              "speed_3": "mdi:fan-speed-3",
+              "silent": "mdi:weather-night"
             }
           },
           "swing_mode": {
             "default": "mdi:arrow-oscillating",
             "state": {
-              "Auto": "mdi:autorenew",
-              "Top": "mdi:arrow-up-bold",
-              "Top-Center": "mdi:arrow-up-thin",
-              "Center": "mdi:minus",
-              "Center-Bottom": "mdi:arrow-down-thin",
-              "Bottom": "mdi:arrow-down-bold",
-              "Swing": "mdi:arrow-up-down-bold"
+              "auto": "mdi:autorenew",
+              "top": "mdi:arrow-up-bold",
+              "top_center": "mdi:arrow-up-thin",
+              "center": "mdi:minus",
+              "center_bottom": "mdi:arrow-down-thin",
+              "bottom": "mdi:arrow-down-bold",
+              "swing": "mdi:arrow-up-down-bold"
             }
           },
           "swing_horizontal_mode": {
             "default": "mdi:arrow-oscillating",
             "state": {
-              "Left": "mdi:arrow-left-bold",
-              "Left-Center": "mdi:arrow-left-thin",
-              "Center": "mdi:minus",
-              "Center-Right": "mdi:arrow-right-thin",
-              "Right": "mdi:arrow-right-bold",
-              "Sides (Low Angle)": "mdi:arrow-expand-horizontal",
-              "Sides (High Angle)": "mdi:swap-horizontal-bold",
-              "Sides To Center": "mdi:arrow-collapse-horizontal"
+              "left": "mdi:arrow-left-bold",
+              "left_center": "mdi:arrow-left-thin",
+              "center": "mdi:minus",
+              "center_right": "mdi:arrow-right-thin",
+              "right": "mdi:arrow-right-bold",
+              "sides_low_angle": "mdi:arrow-expand-horizontal",
+              "sides_high_angle": "mdi:swap-horizontal-bold",
+              "sides_to_center": "mdi:arrow-collapse-horizontal"
             }
           }
         }
@@ -85,24 +85,24 @@
           "preset_mode": {
             "default": "mdi:tune-variant",
             "state": {
-              "Manual": "mdi:hand-back-right",
-              "Always-off": "mdi:cancel"
+              "manual": "mdi:hand-back-right",
+              "always_off": "mdi:cancel"
             }
           },
           "fan_mode": {
             "default": "mdi:fan",
             "state": {
-              "0%": "mdi:fan-off",
-              "10%": "mdi:fan-speed-1",
-              "20%": "mdi:fan-speed-1",
-              "30%": "mdi:fan-speed-1",
-              "40%": "mdi:fan-speed-2",
-              "50%": "mdi:fan-speed-2",
-              "60%": "mdi:fan-speed-2",
-              "70%": "mdi:fan-speed-3",
-              "80%": "mdi:fan-speed-3",
-              "90%": "mdi:fan-speed-3",
-              "100%": "mdi:fan-speed-3"
+              "percent_0": "mdi:fan-off",
+              "percent_10": "mdi:fan-speed-1",
+              "percent_20": "mdi:fan-speed-1",
+              "percent_30": "mdi:fan-speed-1",
+              "percent_40": "mdi:fan-speed-2",
+              "percent_50": "mdi:fan-speed-2",
+              "percent_60": "mdi:fan-speed-2",
+              "percent_70": "mdi:fan-speed-3",
+              "percent_80": "mdi:fan-speed-3",
+              "percent_90": "mdi:fan-speed-3",
+              "percent_100": "mdi:fan-speed-3"
             }
           }
         }
@@ -112,8 +112,8 @@
           "preset_mode": {
             "default": "mdi:tune-variant",
             "state": {
-              "Manual": "mdi:hand-back-right",
-              "Always-off": "mdi:cancel"
+              "manual": "mdi:hand-back-right",
+              "always_off": "mdi:cancel"
             }
           }
         }
@@ -130,36 +130,36 @@
           "fan_mode": {
             "default": "mdi:fan",
             "state": {
-              "Auto": "mdi:fan-auto",
-              "1st Speed": "mdi:fan-speed-1",
-              "2nd Speed": "mdi:fan-speed-2",
-              "3rd Speed": "mdi:fan-speed-3",
-              "Silent": "mdi:weather-night"
+              "auto": "mdi:fan-auto",
+              "speed_1": "mdi:fan-speed-1",
+              "speed_2": "mdi:fan-speed-2",
+              "speed_3": "mdi:fan-speed-3",
+              "silent": "mdi:weather-night"
             }
           },
           "swing_mode": {
             "default": "mdi:arrow-oscillating",
             "state": {
-              "Auto": "mdi:autorenew",
-              "Top": "mdi:arrow-up-bold",
-              "Top-Center": "mdi:arrow-up-thin",
-              "Center": "mdi:minus",
-              "Center-Bottom": "mdi:arrow-down-thin",
-              "Bottom": "mdi:arrow-down-bold",
-              "Swing": "mdi:arrow-up-down-bold"
+              "auto": "mdi:autorenew",
+              "top": "mdi:arrow-up-bold",
+              "top_center": "mdi:arrow-up-thin",
+              "center": "mdi:minus",
+              "center_bottom": "mdi:arrow-down-thin",
+              "bottom": "mdi:arrow-down-bold",
+              "swing": "mdi:arrow-up-down-bold"
             }
           },
           "swing_horizontal_mode": {
             "default": "mdi:arrow-oscillating",
             "state": {
-              "Left": "mdi:arrow-left-bold",
-              "Left-Center": "mdi:arrow-left-thin",
-              "Center": "mdi:minus",
-              "Center-Right": "mdi:arrow-right-thin",
-              "Right": "mdi:arrow-right-bold",
-              "Sides (Low Angle)": "mdi:arrow-expand-horizontal",
-              "Sides (High Angle)": "mdi:swap-horizontal-bold",
-              "Sides To Center": "mdi:arrow-collapse-horizontal"
+              "left": "mdi:arrow-left-bold",
+              "left_center": "mdi:arrow-left-thin",
+              "center": "mdi:minus",
+              "center_right": "mdi:arrow-right-thin",
+              "right": "mdi:arrow-right-bold",
+              "sides_low_angle": "mdi:arrow-expand-horizontal",
+              "sides_high_angle": "mdi:swap-horizontal-bold",
+              "sides_to_center": "mdi:arrow-collapse-horizontal"
             }
           }
         }

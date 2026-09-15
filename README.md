@@ -66,6 +66,25 @@ say what each pair becomes in Home Assistant and what you can do with it.
 | `virtual/ventilation` | `climate` | HRV / supply ventilation unit (Komfovent and similar). Speed preset (Auto / Low / Middle / High); current and target temperature appear only if the widget has temperature sensors linked on the Larnitech side. |
 | `valve` | `valve` | Main shut-off valve — open and close |
 
+#### Option values changed in 0.10.0-beta
+
+Fan speed, louvre position and preset are still shown with the same wording
+in the interface, but the value behind each one is now a slug, as Home
+Assistant requires. **Automations and scripts that match on the old text
+stop matching** — a `fan_mode: "1st Speed"` condition, or
+`preset_mode: "Always-off"` in a service call, has to be updated:
+
+| Where | Before | Now |
+|---|---|---|
+| `AC` / `conditioner` fan speed | `Auto`, `1st Speed`, `2nd Speed`, `3rd Speed` | `auto`, `speed_1`, `speed_2`, `speed_3` |
+| `AC` / `conditioner` vertical swing | `Auto`, `Top`, `Top-Center`, `Center`, `Center-Bottom`, `Bottom`, `Swing` | `auto`, `top`, `top_center`, `center`, `center_bottom`, `bottom`, `swing` |
+| `AC` / `conditioner` horizontal swing | `Left`, `Left-Center`, `Center`, `Center-Right`, `Right`, `Sides (Low Angle)`, `Sides (High Angle)`, `Sides To Center` | `left`, `left_center`, `center`, `center_right`, `right`, `sides_low_angle`, `sides_high_angle`, `sides_to_center` |
+| `fancoil` / `vent` fan speed | `0%` … `100%` | `percent_0` … `percent_100` |
+| `valve-heating` / `fancoil` / `vent` preset | `Manual`, `Always-off` | `manual`, `always_off` |
+
+Presets named on the Larnitech side (Eco, Comfort, …) are unaffected — they
+pass through exactly as the controller reports them.
+
 ### Covers
 
 | type/sub-type | HA domain | What you get |
