@@ -30,12 +30,20 @@ one changes option values users may have written automations against.
 
   Presets named on the Larnitech side (Eco, Comfort, …) are untouched: they
   pass through as the controller reports them, as before.
-- **The read-only notification is no longer translated.** Its text lived in
-  a `notification` section of `strings.json`, which is not part of Home
-  Assistant's translation schema and is why validation failed. The
-  notification itself stays — it answers a click that did nothing, so a
-  repair issue (permanent, for a deliberately configured option) would be
-  the wrong shape — but its wording is built in code and is English only.
+- **BREAKING: a write to a read-only object now fails instead of being
+  swallowed.** It used to complete successfully and leave a notification in
+  the drawer; it now raises, so the reason appears where the action was
+  taken — and **a script or automation writing to a read-only object stops
+  at that step** rather than carrying on as if it had worked.
+
+  The old notification text lived in a `notification` section of
+  `strings.json`, which is not part of Home Assistant's translation schema
+  and is the second reason validation failed. There is no schema section for
+  notification text at all, and `persistent_notification` takes only
+  pre-rendered strings — so a translated notification is not possible.
+  `exceptions` is, and it is what this case is for: every one of these
+  writes happens inside a service call the user triggered. The message stays
+  translated in all four languages.
 
 ## [0.9.7-beta] - 2026-09-10
 

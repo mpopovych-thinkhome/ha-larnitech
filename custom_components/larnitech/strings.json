@@ -14,7 +14,7 @@
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
           "update_areas": "Auto-update device room placement",
-          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead",
+          "read_only": "Read-only mode — only read from Larnitech, never write. Controlling an entity from HA is refused with an error instead of reaching the controller",
           "name_suffix_addr": "Append the Larnitech address to entity names, e.g. \"Temperature (1:98)\"",
           "scan_interval": "Poll interval — safety net against missed push events, and keepalive"
         }
@@ -49,7 +49,7 @@
           "update_names": "Auto-update names from Larnitech",
           "use_areas": "Use Larnitech rooms (create areas and place devices)",
           "update_areas": "Auto-update device room placement",
-          "read_only": "Read-only mode — only read from Larnitech, never write. Changing an entity from HA is discarded; it snaps back to Larnitech's real status instead",
+          "read_only": "Read-only mode — only read from Larnitech, never write. Controlling an entity from HA is refused with an error instead of reaching the controller",
           "name_suffix_addr": "Append the Larnitech address to entity names, e.g. \"Temperature (1:98)\". Entities you renamed by hand keep your name",
           "scan_interval": "Poll interval — safety net against missed push events, and keepalive"
         }
@@ -229,6 +229,11 @@
           }
         }
       }
+    }
+  },
+  "exceptions": {
+    "read_only_write_blocked": {
+      "message": "\"{title}\" is in read-only mode, so Home Assistant did not send this change to Larnitech. Turn read-only off in the integration options to control this controller."
     }
   }
 }

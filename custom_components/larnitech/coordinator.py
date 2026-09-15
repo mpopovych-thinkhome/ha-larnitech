@@ -1,4 +1,4 @@
-# Updated: 2026-09-15 17:24
+# Updated: 2026-09-15 18:05
 """Data coordinator: decoded events applied directly; full get-devices as safety.
 
 The full snapshot also drives reconciliation: add/remove devices, react to a
@@ -13,7 +13,6 @@ from homeassistant.core import callback
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.components import persistent_notification as pn
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.debounce import Debouncer
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -571,33 +570,6 @@ class LarnitechCoordinator(DataUpdateCoordinator):
             severity=ir.IssueSeverity.ERROR,
             translation_key="auth_rejected",
             translation_placeholders={"title": self.entry.title},
-        )
-
-    async def async_notify_read_only(self) -> None:
-        """Persistent notification (HA's own notification drawer, not a
-        mobile push) telling the user a write was skipped because this
-        object is read-only.
-
-        Deliberately NOT a repair issue, unlike `auth_rejected` and the
-        mass-removal prompt above: those report a fault the integration ran
-        into, which stays true until something is fixed. Read-only is the
-        opposite — a per-entry option the user set on purpose — and this
-        fires as the immediate answer to one click that did nothing. A
-        standing entry in Repairs for a setting behaving exactly as
-        configured would be permanent noise on every read-only object.
-
-        The wording is built here rather than translated: HA's translation
-        schema has no section for notification strings (hassfest rejects a
-        `notification` one), and every valid section means something else.
-
-        A stable notification_id per entry keeps repeated blocked writes
-        updating the same notification instead of stacking."""
-        pn.async_create(
-            self.hass,
-            f'"{self.entry.title}" is in read-only mode — status changes from '
-            "Home Assistant are not sent to Larnitech.",
-            title="Larnitech: read-only object",
-            notification_id=f"{DOMAIN}_{self.entry.entry_id}_read_only",
         )
 
     @callback
