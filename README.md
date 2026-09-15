@@ -66,7 +66,7 @@ say what each pair becomes in Home Assistant and what you can do with it.
 | `virtual/ventilation` | `climate` | HRV / supply ventilation unit (Komfovent and similar). Speed preset (Auto / Low / Middle / High); current and target temperature appear only if the widget has temperature sensors linked on the Larnitech side. |
 | `valve` | `valve` | Main shut-off valve — open and close |
 
-#### Option values changed in 0.10.0-beta
+#### Option values changed in 1.0.0-beta
 
 Fan speed, louvre position and preset are still shown with the same wording
 in the interface, but the value behind each one is now a slug, as Home
