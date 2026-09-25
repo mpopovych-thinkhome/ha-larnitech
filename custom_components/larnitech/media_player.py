@@ -168,6 +168,13 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         | MediaPlayerEntityFeature.SEEK
         | MediaPlayerEntityFeature.MEDIA_ANNOUNCE
         | MediaPlayerEntityFeature.BROWSE_MEDIA
+        # A media point has no power of its own, so on/off is play/stop. HA's
+        # own card never needs these, but Google Home's speaker control is
+        # built on them: without them every "turn on the speaker" (and the
+        # power button in the app) fails with `ServiceNotSupported` —
+        # observed live 2026-09-25 on the demo case.
+        | MediaPlayerEntityFeature.TURN_ON
+        | MediaPlayerEntityFeature.TURN_OFF
     )
 
     def __init__(self, coordinator, addr):
@@ -296,6 +303,13 @@ class LarnitechMediaPlayer(LarnitechEntity, MediaPlayerEntity):
         # source underneath (an announcement over music), that one resumes,
         # and a second stop stops it too.
         await self._write_at_active_priority({"state": _CMD_STOP})
+
+    async def async_turn_on(self) -> None:
+        # Same write as `play` — see the feature flags for why these exist.
+        await self.async_media_play()
+
+    async def async_turn_off(self) -> None:
+        await self.async_media_stop()
 
     async def async_media_next_track(self) -> None:
         await self._write_at_active_priority({"state": _CMD_NEXT})
