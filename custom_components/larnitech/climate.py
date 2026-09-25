@@ -297,6 +297,17 @@ class LarnitechValveHeating(_ManualAlwaysOffPresets, LarnitechClimateBase):
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
         self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
+        # STAGE-ONLY, not for release: an underfloor loop only ever heats, so
+        # on this branch `warm-floor` says HEAT where the type as a whole says
+        # HEAT_COOL. Everything else about the type is unchanged — the widget
+        # still has one on/off channel, and this is a label on it.
+        if self.device.get("sub-type") == "warm-floor":
+            self._on_mode = HVACMode.HEAT
+            self._attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT]
+
+    # See `_on_mode` in `__init__`: HEAT_COOL for the type, HEAT for
+    # `warm-floor`.
+    _on_mode = HVACMode.HEAT_COOL
 
     @property
     def supported_features(self) -> ClimateEntityFeature:
@@ -323,8 +334,8 @@ class LarnitechValveHeating(_ManualAlwaysOffPresets, LarnitechClimateBase):
         # Always-off), hvac_mode is the on/off channel itself. Either way:
         # HEAT_COOL, never HEAT — see `_attr_hvac_modes`.
         if self._custom_preset_active:
-            return HVACMode.HEAT_COOL
-        return HVACMode.HEAT_COOL if self.is_state_on else HVACMode.OFF
+            return self._on_mode
+        return self._on_mode if self.is_state_on else HVACMode.OFF
 
     @property
     def hvac_action(self) -> HVACAction | None:
