@@ -28,6 +28,9 @@ class LarnitechEntity(CoordinatorEntity):
     """Base: stable unique_id = <serial>_<id>_<subid>."""
 
     _attr_has_entity_name = False
+    # Subclasses whose widget carries the `auto-state` flag set this, so a
+    # write from HA also hands the widget to manual. See `async_write_status`.
+    _clears_auto_state = False
 
     def __init__(self, coordinator, addr: str):
         super().__init__(coordinator)
@@ -171,6 +174,22 @@ class LarnitechEntity(CoordinatorEntity):
                 translation_key="read_only_write_blocked",
                 translation_placeholders={"title": self.coordinator.entry.title},
             )
+        if self._clears_auto_state:
+            # The widget's motion rules (`on-by-moving`, `off-by-moving`,
+            # `off-by-door`) keep acting on it while `auto-state` is set, so a
+            # command from HA would be undone by the controller's own
+            # automation moments later. Clearing the flag in the same frame
+            # hands the widget to manual, which is what pressing it in the
+            # Larnitech app does too. The override is not permanent: the
+            # controller re-arms automation after the widget's `auto-period`
+            # (XML-only, invisible through API2 — 10s on the demo case, 600s
+            # by default).
+            #
+            # Verified live 2026-09-23 on the demo case: accepted alongside
+            # `state` (302:1) and `level` (302:11) without disturbing either,
+            # and silently ignored on widgets that have no such flag (302:2),
+            # which is why this needs no per-device check.
+            status = {**status, "auto-state": 0}
         await self.coordinator.client.async_set_status(self._addr, status)
         # Fire-and-forget: verifying is a courtesy, not part of the write
         # itself — don't make the HA service call (and the UI spinner) wait

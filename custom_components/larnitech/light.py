@@ -58,6 +58,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class LarnitechLamp(LarnitechEntity, LightEntity):
+    _clears_auto_state = True
     _attr_color_mode = ColorMode.ONOFF
     _attr_supported_color_modes = {ColorMode.ONOFF}
 
@@ -77,6 +78,7 @@ class LarnitechLamp(LarnitechEntity, LightEntity):
 
 
 class LarnitechDimmer(LarnitechEntity, LightEntity):
+    _clears_auto_state = True
     _attr_color_mode = ColorMode.BRIGHTNESS
     _attr_supported_color_modes = {ColorMode.BRIGHTNESS}
 
@@ -114,6 +116,7 @@ class LarnitechDimmer(LarnitechEntity, LightEntity):
 
 
 class LarnitechRgb(LarnitechEntity, LightEntity):
+    _clears_auto_state = True
     _attr_color_mode = ColorMode.HS
     _attr_supported_color_modes = {ColorMode.HS}
 

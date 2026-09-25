@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1-beta] - 2026-09-25
+
+### Changed
+- **A command from Home Assistant now takes the widget off automation.**
+  Lights (`lamp`, `dimmer-lamp`, `rgb-lamp`), light scenes and scripts carry
+  an `auto-state` flag: while it is set, the controller's own motion rules
+  (`on-by-moving`, `off-by-moving`, `off-by-door`) keep acting on the widget
+  and can undo a command from HA moments after it arrives. Every write from
+  HA now clears the flag in the same frame, which is what pressing the
+  widget in the Larnitech app does too. The override is not permanent — the
+  controller re-arms automation after the widget's own `auto-period`, which
+  only the object's XML configuration knows (600 seconds by default). Widgets
+  that have no such flag are unaffected: the controller ignores the extra key.
+
 ## [1.0.0-beta] - 2026-09-15
 
 Home Assistant's own validation (`hassfest`) rejected the integration, and

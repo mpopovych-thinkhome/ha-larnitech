@@ -56,6 +56,10 @@ class LarnitechSwitch(LarnitechEntity, SwitchEntity):
         super().__init__(coordinator, addr)
         if self.device.get("sub-type") == "socket":
             self._attr_device_class = SwitchDeviceClass.OUTLET
+        # Per-instance rather than on the class: this one class also serves the
+        # `lamp` sub-types (socket, pump, ...), and only these two carry the
+        # `auto-state` flag the lights do. See `LarnitechEntity`.
+        self._clears_auto_state = self.device.get("type") in ("light-scheme", "script")
         self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
 
     @property
