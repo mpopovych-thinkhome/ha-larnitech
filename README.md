@@ -54,6 +54,12 @@ say what each pair becomes in Home Assistant and what you can do with it.
 | `rgb-lamp` | `light` | On/off + brightness + colour |
 | `light-scheme` | `switch` | Light scene, on/off. "Activate-only" scenes accept on but ignore off — that's the controller's behaviour, not a bug in the integration |
 
+Switching a light, a light scene or a script from Home Assistant also takes
+that widget off the controller's own automation — its motion rules stop
+acting on it, exactly as when you press it in the Larnitech app. The
+controller re-arms the automation by itself after the widget's `auto-period`
+(600 seconds unless the object's configuration says otherwise).
+
 ### Climate
 
 | type/sub-type | HA domain | What you get |
