@@ -7,7 +7,7 @@ the Larnitech widget catalog.
 
 ## Requirements
 
-- Home Assistant ≥ 2024.8.0
+- Home Assistant ≥ 2024.12.0
 - A Larnitech controller reachable locally (API2 port) or via Larnitech
   Cloud, with an API2 key
 - `websockets>=12.0` (installed automatically)
