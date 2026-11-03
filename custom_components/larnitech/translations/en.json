@@ -234,6 +234,54 @@
   "exceptions": {
     "read_only_write_blocked": {
       "message": "\"{title}\" is in read-only mode, so Home Assistant did not send this change to Larnitech. Turn read-only off in the integration options to control this controller."
+    },
+    "modbus_bad_port": {
+      "message": "\"{port}\" is not a com-port of this Larnitech controller."
+    },
+    "modbus_bad_values": {
+      "message": "Writing needs values: exactly one for function 6, one or more for function 16."
+    },
+    "modbus_timeout": {
+      "message": "No answer from the device on port {port}. Check the slave ID, the register and the wiring — the bus is shared with the controller's own script."
+    },
+    "modbus_exception": {
+      "message": "The device rejected the request with Modbus exception code {code}."
+    }
+  },
+  "services": {
+    "modbus_request": {
+      "name": "Modbus request",
+      "description": "Reads or writes Modbus registers on a device behind a Larnitech com-port (RS-485 or Modbus TCP). A read returns the registers; a write succeeds once the device confirms it. Reads also work in read-only mode, writes do not. The bus is shared with the controller's own script: send only what that script could send itself.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Controller",
+          "description": "The Larnitech controller the port belongs to."
+        },
+        "port": {
+          "name": "Port",
+          "description": "Address of the com-port widget, e.g. 210:1."
+        },
+        "slave": {
+          "name": "Slave ID",
+          "description": "Modbus address of the device on the bus (1-247)."
+        },
+        "function": {
+          "name": "Function",
+          "description": "3 = read holding registers, 4 = read input registers, 6 = write one register, 16 = write several registers."
+        },
+        "address": {
+          "name": "Register",
+          "description": "Address of the first register (0-65535), numbered from zero as in the device documentation."
+        },
+        "count": {
+          "name": "Count",
+          "description": "How many registers to read (functions 3 and 4)."
+        },
+        "values": {
+          "name": "Values",
+          "description": "What to write: one value for function 6, a list for function 16."
+        }
+      }
     }
   }
 }
