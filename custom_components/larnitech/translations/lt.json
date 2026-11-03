@@ -234,6 +234,54 @@
   "exceptions": {
     "read_only_write_blocked": {
       "message": "„{title}“ veikia tik skaitymo režimu, todėl Home Assistant neišsiuntė šio pakeitimo į Larnitech. Kad galėtumėte valdyti valdiklį, išjunkite tik skaitymo režimą integracijos nustatymuose."
+    },
+    "modbus_bad_port": {
+      "message": "„{port}“ nėra šio Larnitech valdiklio com prievadas."
+    },
+    "modbus_bad_values": {
+      "message": "Įrašymui reikia reikšmių: lygiai vienos 6 funkcijai, vienos ar kelių 16 funkcijai."
+    },
+    "modbus_timeout": {
+      "message": "Įrenginys prievade {port} neatsakė. Patikrinkite įrenginio ID, registrą ir prijungimą – magistrale dalijamasi su valdiklio scenarijumi."
+    },
+    "modbus_exception": {
+      "message": "Įrenginys atmetė užklausą su Modbus išimties kodu {code}."
+    }
+  },
+  "services": {
+    "modbus_request": {
+      "name": "Modbus užklausa",
+      "description": "Nuskaito arba įrašo Modbus registrus įrenginyje, prijungtame prie Larnitech com prievado (RS-485 arba Modbus TCP). Nuskaitymas grąžina registrus; įrašymas laikomas atliktu, kai įrenginys jį patvirtina. Nuskaityti galima ir tik skaitymo režimu, įrašyti – ne. Magistrale dalijamasi su valdiklio scenarijumi: siųskite tik tai, ką galėtų siųsti pats scenarijus.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Valdiklis",
+          "description": "Larnitech valdiklis, kuriam priklauso prievadas."
+        },
+        "port": {
+          "name": "Prievadas",
+          "description": "com-port elemento adresas, pvz., 210:1."
+        },
+        "slave": {
+          "name": "Įrenginio ID",
+          "description": "Įrenginio Modbus adresas magistralėje (1–247)."
+        },
+        "function": {
+          "name": "Funkcija",
+          "description": "3 – holding registrų nuskaitymas, 4 – input registrų nuskaitymas, 6 – vieno registro įrašymas, 16 – kelių registrų įrašymas."
+        },
+        "address": {
+          "name": "Registras",
+          "description": "Pirmojo registro adresas (0–65535), numeruojant nuo nulio, kaip įrenginio dokumentacijoje."
+        },
+        "count": {
+          "name": "Kiekis",
+          "description": "Kiek registrų nuskaityti (3 ir 4 funkcijos)."
+        },
+        "values": {
+          "name": "Reikšmės",
+          "description": "Ką įrašyti: viena reikšmė 6 funkcijai, sąrašas 16 funkcijai."
+        }
+      }
     }
   }
 }

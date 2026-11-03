@@ -239,7 +239,8 @@ class LarnitechClient:
                 fut.set_result(msg.get("devices", []))
         elif response == "status-set":
             for dev in msg.get("devices", []):
-                if not dev.get("success", True):
+                # A string status (raw Modbus to a com-port) is acked with bare addrs.
+                if isinstance(dev, dict) and not dev.get("success", True):
                     _LOGGER.warning("Larnitech: status-set failed for %s: %s", dev.get("addr"), dev)
         elif msg.get("event") == "statuses" and self._on_event is not None:
             self._on_event(msg.get("devices", []))
@@ -280,7 +281,7 @@ class LarnitechClient:
             finally:
                 self._status_get_future = None
 
-    async def async_set_status(self, addr: str, status: dict) -> None:
+    async def async_set_status(self, addr: str, status: dict | str) -> None:
         if self._ws is None:
             raise LarnitechError("not connected")
         try:
