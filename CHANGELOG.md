@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2-beta] - 2026-10-21
+
+### Changed
+- **Minimum Home Assistant version is now 2024.12.0** (was 2024.8.0). The
+  code already needed it: horizontal swing (`SWING_HORIZONTAL_MODE`) arrived
+  in 2024.12, and the reconfigure flow uses `_get_reconfigure_entry()`. On
+  anything older the climate platform failed to load, so the declared minimum
+  let those installs take an update that then broke. Found in the HACS review.
+
 ## [1.0.1-beta] - 2026-09-25
 
 ### Changed

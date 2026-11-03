@@ -7,7 +7,7 @@ the Larnitech widget catalog.
 
 ## Requirements
 
-- Home Assistant ≥ 2024.8.0
+- Home Assistant ≥ 2024.12.0
 - A Larnitech controller reachable locally (API2 port) or via Larnitech
   Cloud, with an API2 key
 - `websockets>=12.0` (installed automatically)
@@ -143,7 +143,8 @@ Widget types with no Home Assistant entities at all:
 - `rtsp` — camera stream
 - `intercom` — door intercom
 - `item-ref` — reference to another widget
-- `com-port` — raw serial port
+- `com-port` — raw serial port; usable for Modbus through an action instead,
+  see [Modbus](#modbus)
 - `virtual/plan` — floor plan image
 - `virtual/sunrise` — sunrise/sunset times
 - `virtual/prf`, `virtual/jalousie`, `virtual/gate` (and their `120`
@@ -222,6 +223,41 @@ Every control here is sent at the level the media point is already on, so
 the buttons keep working whatever grabbed it — but a controller script
 holding a media point at a high priority will still ignore a *new* stream
 started from HA at the default level.
+
+## Modbus
+
+A Modbus device wired to a Larnitech `com-port` (RS-485, or Modbus TCP) can
+be read and written from Home Assistant with the `larnitech.modbus_request`
+action. Reads return the registers:
+
+```yaml
+action: larnitech.modbus_request
+data:
+  config_entry_id: 01M3...        # the Larnitech controller
+  port: "210:1"                   # the com-port widget
+  slave: 1
+  function: 3                     # 3/4 read holding/input, 6/16 write
+  address: 6
+  count: 1
+response_variable: modbus
+# modbus.registers -> [20]
+```
+
+A write (`function: 6` with `values: [35]`, or `16` with a list) succeeds
+only once the device confirms it on the bus; no answer within 3 seconds is
+an error, as is a Modbus exception from the device. Reads also work on a
+controller in read-only mode; writes do not.
+
+That is enough to build a device on the Home Assistant side — a
+trigger-based template sensor that calls the action on a schedule and keeps
+`modbus.registers[0]`, for instance.
+
+**The bus is shared with the controller's own script**, which keeps polling
+it. Send only what that script could send itself — a read, or a write of a
+valid value to a register the device documents. A read answer carries no
+register address, so if the script reads the same device with the same
+function and register count at the same instant, the two answers cannot be
+told apart.
 
 ## Settings
 
