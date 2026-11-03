@@ -122,6 +122,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             for a, d in coordinator.data.items()
             if d.get("type") == "virtual" and d.get("sub-type") in VIRTUAL_SENSOR_SUBTYPES
         }
+        current |= {(a, "port") for a, d in coordinator.data.items() if d.get("type") == "com-port"}
         current |= {
             (a, f"json:{key}")
             for a, d in coordinator.data.items()
@@ -141,6 +142,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             elif kind == "pid":
                 status_key = DIAGNOSTIC_SENSORS[coordinator.data[addr]["type"]]
                 new.append(LarnitechPidSensor(coordinator, addr, status_key))
+            elif kind == "port":
+                new.append(LarnitechPortSensor(coordinator, addr))
             elif kind.startswith("json:"):
                 new.append(LarnitechJsonFieldSensor(coordinator, addr, kind.split(":", 1)[1]))
             else:
@@ -179,6 +182,33 @@ class LarnitechSensor(LarnitechEntity, SensorEntity):
                 self.status,
             )
         return None
+
+
+class LarnitechPortSensor(LarnitechEntity, SensorEntity):
+    """A `com-port`: the last frame the controller received on its bus (a
+    device's Modbus answer or write echo, CRC included) — what
+    `larnitech.modbus_request` reads its answers from.
+
+    Disabled by default, so its "Enabled" checkbox is the switch for watching
+    the bus: a port the controller's script polls changes every few seconds,
+    and that would otherwise flood the recorder for no one. The action does
+    not need the entity — it reads the coordinator's data either way."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_entity_registry_enabled_default = False
+    _attr_icon = "mdi:serial-port"
+
+    def __init__(self, coordinator, addr):
+        super().__init__(coordinator, addr)
+        self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
+
+    @property
+    def native_value(self) -> str | None:
+        frame = self.status.get("hex")
+        # shortcut: HA caps a state at 255 characters and a 125-register answer
+        # is 512 hex digits, so long frames are cut; move the frame to an
+        # attribute if someone needs long ones whole.
+        return frame[:255] if isinstance(frame, str) else None
 
 
 class LarnitechPidSensor(LarnitechEntity, SensorEntity):

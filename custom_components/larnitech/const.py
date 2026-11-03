@@ -203,6 +203,7 @@ HANDLED_TYPES = {
     "vent",
     "speaker",
     "script",
+    "com-port",
 }
 
 
