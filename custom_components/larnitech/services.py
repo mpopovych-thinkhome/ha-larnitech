@@ -27,9 +27,10 @@ from .modbus import (
 
 SERVICE_MODBUS_REQUEST = "modbus_request"
 
-# Answers were measured at ~0.2s, but they queue behind the script master's own
-# polling on the same bus.
-_ANSWER_TIMEOUT = 3
+# A frame waits its turn behind the script master's polling burst (object 190:
+# eight transactions every 10s), so a whole exchange took 2.4-4s live, though
+# the device itself answers in ~0.2s.
+_ANSWER_TIMEOUT = 8
 # See `_exchange`: how many times to try moving the port off a frame that
 # already looks like our answer before sending anyway.
 _SEPARATE_ATTEMPTS = 3
