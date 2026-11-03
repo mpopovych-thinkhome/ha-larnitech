@@ -143,8 +143,6 @@ Widget types with no Home Assistant entities at all:
 - `rtsp` — camera stream
 - `intercom` — door intercom
 - `item-ref` — reference to another widget
-- `com-port` — raw serial port; usable for Modbus through an action instead,
-  see [Modbus](#modbus)
 - `virtual/plan` — floor plan image
 - `virtual/sunrise` — sunrise/sunset times
 - `virtual/prf`, `virtual/jalousie`, `virtual/gate` (and their `120`
@@ -244,9 +242,17 @@ response_variable: modbus
 ```
 
 A write (`function: 6` with `values: [35]`, or `16` with a list) succeeds
-only once the device confirms it on the bus; no answer within 8 seconds is
+only once the device confirms it on the bus; no answer within 3 seconds is
 an error, as is a Modbus exception from the device. Reads also work on a
 controller in read-only mode; writes do not.
+
+Every `com-port` shows up as its own device, so its address is visible in
+the device list. It carries one diagnostic sensor, the last frame the
+controller received on the bus, **disabled by default**: a port the
+controller's script polls changes every few seconds and would fill the
+history. Enable that sensor (its **Enabled** toggle in the entity settings)
+while you need to watch the bus, and switch it off again afterwards. The
+action works either way.
 
 That is enough to build a device on the Home Assistant side — a
 trigger-based template sensor that calls the action on a schedule and keeps

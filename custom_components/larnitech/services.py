@@ -27,10 +27,11 @@ from .modbus import (
 
 SERVICE_MODBUS_REQUEST = "modbus_request"
 
-# A frame waits its turn behind the script master's polling burst (object 190:
-# eight transactions every 10s), so a whole exchange took 2.4-4s live, though
-# the device itself answers in ~0.2s.
-_ANSWER_TIMEOUT = 8
+# The device answers in ~0.2s; a command is expected to go out at once.
+# shortcut: on object 190 the MCP measured 2.4-4s per exchange (a frame queued
+# behind the script master's polling burst), so a busy bus can time out here;
+# raise this if timeouts show up there in practice.
+_ANSWER_TIMEOUT = 3
 # See `_exchange`: how many times to try moving the port off a frame that
 # already looks like our answer before sending anyway.
 _SEPARATE_ATTEMPTS = 3

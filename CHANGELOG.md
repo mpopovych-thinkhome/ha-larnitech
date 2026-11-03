@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0-beta] - 2026-11-03
+
+### Added
+- **Modbus through a `com-port`: the `larnitech.modbus_request` action.**
+  Reads holding/input registers (functions 3, 4) and writes one or several
+  (6, 16) on a device wired to a Larnitech port, RS-485 or Modbus TCP. The
+  controller forwards a raw frame to the bus and reports what the device
+  answers; the integration builds the frame, waits for the answer and hands
+  back the registers, so a device can be built on the Home Assistant side
+  from scripts and template sensors. A write succeeds only once the device
+  confirms it. Reads also work on a controller in read-only mode, writes do
+  not. Verified on a heat pump (Daikin via DCOM-LT/MB): reads, and a write
+  of a setpoint and back.
+- **Every `com-port` is now a device**, with a diagnostic sensor for the last
+  frame received on the bus — disabled by default, since a polled bus would
+  fill the history.
+
+### Fixed
+- A `status-set` answered with bare addresses (what a raw frame gets) no
+  longer breaks the client's message handling.
+
 ## [1.0.2-beta] - 2026-10-21
 
 ### Changed
