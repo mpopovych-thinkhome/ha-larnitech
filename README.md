@@ -247,12 +247,24 @@ an error, as is a Modbus exception from the device. Reads also work on a
 controller in read-only mode; writes do not.
 
 Every `com-port` shows up as its own device, so its address is visible in
-the device list. It carries one diagnostic sensor, the last frame the
-controller received on the bus, **disabled by default**: a port the
-controller's script polls changes every few seconds and would fill the
-history. Enable that sensor (its **Enabled** toggle in the entity settings)
-while you need to watch the bus, and switch it off again afterwards. The
-action works either way.
+the device list. Its diagnostic sensor shows the last frame the controller
+received on the bus, and its `frames` attribute the last 100 of them with
+their time, newest first. That journal stays out of the history database
+and starts empty after a restart.
+
+The sensor's own state is recorded like any other, and a port the
+controller's script polls changes every few seconds. Home Assistant cannot
+keep "only the last N" for one entity, so to keep it out of the history
+exclude it in `configuration.yaml`:
+
+```yaml
+recorder:
+  exclude:
+    entity_globs:
+      - sensor.*_210_1   # the port's entity
+```
+
+The action works whether the sensor is recorded, excluded or disabled.
 
 That is enough to build a device on the Home Assistant side — a
 trigger-based template sensor that calls the action on a schedule and keeps

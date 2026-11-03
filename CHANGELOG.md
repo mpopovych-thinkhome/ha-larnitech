@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **The `com-port` sensor is enabled by default** and keeps the last 100
+  received frames, with their time, in its `frames` attribute — kept out of
+  the history database. The state itself is recorded as usual; exclude the
+  entity in the recorder config to keep a busy bus out of the history.
+
 ## [1.1.0-beta] - 2026-11-03
 
 ### Added
