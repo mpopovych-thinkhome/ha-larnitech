@@ -244,7 +244,7 @@ response_variable: modbus
 ```
 
 A write (`function: 6` with `values: [35]`, or `16` with a list) succeeds
-only once the device confirms it on the bus; no answer within 3 seconds is
+only once the device confirms it on the bus; no answer within 8 seconds is
 an error, as is a Modbus exception from the device. Reads also work on a
 controller in read-only mode; writes do not.
 
