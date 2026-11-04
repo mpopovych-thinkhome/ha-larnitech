@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1-beta] - 2026-11-04
+
+### Fixed
+- **On a busy object the scheduled poll never ran, and one failed poll left
+  most entities `unavailable` for good.** Every push event reset the poll
+  timer — on an object pushing about once a second the full `get-devices`
+  simply never came (seen on a 1857-device object: 2h42m without one). When
+  a poll did fail, the next push marked the controller healthy again but
+  re-rendered only its own device, so everything that stayed quiet — lamps,
+  scripts, alarms — kept showing `unavailable` (969 of 1746 entities).
+  Pushes no longer touch the poll schedule or the health flag: the poll runs
+  every scan interval as configured, and its success alone decides
+  availability.
+
+### Changed
+- **The `com-port` sensor is enabled by default** and keeps the last 100
+  received frames, with their time, in its `frames` attribute — kept out of
+  the history database. The state itself is recorded as usual; exclude the
+  entity in the recorder config to keep a busy bus out of the history.
+
 ## [1.1.0-beta] - 2026-11-03
 
 ### Added

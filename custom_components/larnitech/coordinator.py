@@ -341,10 +341,10 @@ class LarnitechCoordinator(DataUpdateCoordinator):
                 verify.append(addr)
 
         if pushed:
-            # Listeners run synchronously inside async_set_updated_data, so
-            # this window is exactly the push delivery and nothing else.
+            # Listeners run synchronously inside `_publish_partial`, so this
+            # window is exactly the push delivery and nothing else.
             self.event_addrs = self.updated_addrs = frozenset(pushed)
-            self.async_set_updated_data(updated)
+            self._publish_partial(updated)
             self.event_addrs = self.updated_addrs = frozenset()
         if need_full:
             self.hass.async_create_task(self.async_request_refresh())
@@ -392,8 +392,25 @@ class LarnitechCoordinator(DataUpdateCoordinator):
         # this is a post-write verify, not a push, and a button must not
         # re-fire its last gesture because of one.
         self.updated_addrs = frozenset({addr})
-        self.async_set_updated_data(updated)
+        self._publish_partial(updated)
         self.updated_addrs = frozenset()
+
+    @callback
+    def _publish_partial(self, data: dict[str, dict]) -> None:
+        """Hand listeners data that changed between polls (a push, a
+        post-write re-read) without `async_set_updated_data`.
+
+        That method also pushes the next scheduled poll a full
+        `scan_interval` out and marks the coordinator healthy. On a busy
+        object a push arrives about every second, so the scheduled
+        `get-devices` never ran at all — object 200, 2026-11-04: 2h42m
+        without one — and the first push after a failed poll flipped
+        `last_update_success` back to True while only the pushed addr
+        re-rendered, leaving ~55% of the entities `unavailable` for good. A
+        partial update proves neither, so the poll keeps its own schedule
+        and alone decides health."""
+        self.data = data
+        self.async_update_listeners()
 
     # --- reconciliation (full snapshot only) -----------------------------
 

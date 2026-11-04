@@ -2,6 +2,8 @@
 """Larnitech measurement sensors (read-only), added/removed dynamically."""
 from __future__ import annotations
 
+from collections import deque
+
 from homeassistant.components.sensor import (
     ENTITY_ID_FORMAT,
     SensorDeviceClass,
@@ -22,6 +24,7 @@ from homeassistant.const import (
     UnitOfVolumeFlowRate,
 )
 from homeassistant.core import callback
+from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN, json_platform, virtual_platform
 from .entity import LarnitechEntity
@@ -189,26 +192,42 @@ class LarnitechPortSensor(LarnitechEntity, SensorEntity):
     device's Modbus answer or write echo, CRC included) — what
     `larnitech.modbus_request` reads its answers from.
 
-    Disabled by default, so its "Enabled" checkbox is the switch for watching
-    the bus: a port the controller's script polls changes every few seconds,
-    and that would otherwise flood the recorder for no one. The action does
-    not need the entity — it reads the coordinator's data either way."""
+    The last 100 frames also ride in the `frames` attribute, newest first,
+    kept out of the recorder: a port the controller's script polls changes
+    every few seconds, and the recorder has no per-entity "keep the last N".
+    That journal lives in memory and starts empty after a restart. To keep
+    the state itself out of the history too, the user excludes the entity in
+    the recorder config — an integration cannot do that for its own entity."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC
-    _attr_entity_registry_enabled_default = False
     _attr_icon = "mdi:serial-port"
+    _unrecorded_attributes = frozenset({"frames"})
 
     def __init__(self, coordinator, addr):
         super().__init__(coordinator, addr)
         self.entity_id = ENTITY_ID_FORMAT.format(self._oid())
+        self._frames: deque[dict] = deque(maxlen=100)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        # Every pushed event on a port is a frame received; a poll only
+        # repeats the last one.
+        frame = self.status.get("hex")
+        if self._addr in self.coordinator.event_addrs and isinstance(frame, str):
+            self._frames.appendleft({"at": dt_util.now().isoformat(timespec="seconds"), "frame": frame})
+        super()._handle_coordinator_update()
 
     @property
     def native_value(self) -> str | None:
         frame = self.status.get("hex")
         # shortcut: HA caps a state at 255 characters and a 125-register answer
-        # is 512 hex digits, so long frames are cut; move the frame to an
-        # attribute if someone needs long ones whole.
+        # is 512 hex digits, so long frames are cut here; `frames` keeps them
+        # whole.
         return frame[:255] if isinstance(frame, str) else None
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {"frames": list(self._frames)}
 
 
 class LarnitechPidSensor(LarnitechEntity, SensorEntity):
