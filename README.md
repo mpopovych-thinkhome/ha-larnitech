@@ -1,5 +1,16 @@
 # Larnitech — Home Assistant integration
 
+> [!WARNING]
+> **This integration is archived and no longer maintained.**
+> Larnitech now publishes its own official Home Assistant integration:
+> **[larnitech/larnitech-ha](https://github.com/larnitech/larnitech-ha)** (search for
+> "Larnitech" in HACS). Please use it instead.
+>
+> The official integration uses a different domain (`larnitech_official`), so it
+> does not take over the entities of this one: remove this integration, install the
+> official one and add your controllers again. Automations and scripts that refer to
+> `larnitech.*` entities or actions need updating.
+
 Custom integration connecting Home Assistant to Larnitech controllers over
 the API2 WebSocket. Local or cloud connection, multiple controllers per HA
 instance, push updates with a safety poll, and two-way control for most of

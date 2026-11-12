@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Archived] - 2026-11-12
+
+This project is retired in favour of the official Larnitech integration,
+[larnitech/larnitech-ha](https://github.com/larnitech/larnitech-ha). No further
+releases. The last release is 1.1.1-beta.
+
 ## [1.1.1-beta] - 2026-11-04
 
 ### Fixed
